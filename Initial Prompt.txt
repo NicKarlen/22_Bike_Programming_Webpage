@@ -1,0 +1,13 @@
+I want to make a github pages website that i can track my biking workouts from garmin and also create training plans.
+
+  I want to be able to make a connection via API to garmin connect and get the relevant data from there. make sure that all Biking related activities are pulled from the date on that is relevant to just everything...
+
+  Also i want to make it easy for someone to use Claude to create the training plan and past the resulte from claude in to the app. My thought: The webpage should give an exact prompt that i can use in the claude interface (not connected to my app) to create a JSON of my trainingplan. I will then paste the JSON from Claude in to the App (on Github Pages) and the app will digest the JSON and represent the plan very neatly (list but also calendar). the plan should then also be adjustable in my app.
+
+  Next the API to Garmin will pull my done exercices related to Biking of course and tries to make them on my training plan so i see which one i have done and how good i was. I am most interested in distance, elevetion, HR and so on...
+
+  Also there needs to be a function to export everything (the plan and the data from Garmin) as a JSON so i could go back to claude to discuss things... After that i might come back with a new JSON (updated Plan) and i should be able to reupdate the plan that way... (maybe also give a good prompt for that step.)
+
+  also i guess we same everything in localstorage (browser) if you dont have a better idea...
+
+  THe app will be mainly used on the Phone but also in the browser.

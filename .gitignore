@@ -1,0 +1,12 @@
+# Real Garmin exports are personal ride data — never commit them. data/sample-plan.json is the
+# only intentional fixture in this folder; everything else dropped in data/ for local testing
+# (GPX/TCX files, real backups) is ignored by default.
+data/*.tcx
+data/*.gpx
+data/*.fit
+data/*backup*.json
+
+# Local tooling artifacts, in case anyone runs npm-based tests/polyfills here temporarily.
+node_modules/
+package.json
+package-lock.json

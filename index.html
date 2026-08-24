@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bike Training Tracker</title>
+  <meta name="description" content="Track Garmin cycling rides and build training plans with Claude's help — no server, no accounts, your data stays in this browser.">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/views.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="app-title">🚴 Bike Training</span>
+    <a class="header-link" href="#/import-export" title="Import / Export">⇅</a>
+  </header>
+
+  <main id="app"></main>
+
+  <div id="modal-root"></div>
+
+  <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

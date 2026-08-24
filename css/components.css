@@ -1,0 +1,221 @@
+/* Summary cards (Dashboard) */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.summary-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+  box-shadow: var(--shadow-card);
+}
+.summary-value { font-size: 1.4rem; font-weight: 700; }
+.summary-label { font-size: 0.75rem; color: var(--color-text-muted); }
+
+.empty-banner {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+/* Workout cards */
+.workout-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.workout-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.workout-card:focus-visible { outline: 2px solid var(--color-accent); }
+.workout-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+.workout-card-date { font-size: 0.75rem; color: var(--color-text-muted); }
+.workout-card-title { font-weight: 700; margin: 0.1rem 0 0.2rem; }
+.workout-card-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.4rem; }
+.workout-card-targets { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.target-chip {
+  font-size: 0.75rem;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  color: var(--color-text-muted);
+}
+.target-chip strong { color: var(--color-text); }
+
+.chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  text-transform: capitalize;
+}
+.chip-type { background: var(--color-surface-alt); color: var(--color-text-muted); }
+.chip-status { color: #fff; }
+.chip-status.status-planned { background: var(--color-text-muted); }
+.chip-status.status-completed { background: var(--color-success); }
+.chip-status.status-partial { background: var(--color-warning); }
+.chip-status.status-missed { background: var(--color-danger); }
+.chip-status.status-extra { background: var(--color-accent); }
+
+/* Left-border color per workout type */
+.workout-card.type-endurance { border-left-color: var(--color-type-endurance); }
+.workout-card.type-recovery { border-left-color: var(--color-type-recovery); }
+.workout-card.type-interval { border-left-color: var(--color-type-interval); }
+.workout-card.type-tempo { border-left-color: var(--color-type-tempo); }
+.workout-card.type-threshold { border-left-color: var(--color-type-threshold); }
+.workout-card.type-vo2max { border-left-color: var(--color-type-vo2max); }
+.workout-card.type-long_ride { border-left-color: var(--color-type-long_ride); }
+.workout-card.type-race { border-left-color: var(--color-type-race); }
+.workout-card.type-rest { border-left-color: var(--color-type-rest); }
+.workout-card.type-cross_train { border-left-color: var(--color-type-cross_train); }
+.workout-card.type-other { border-left-color: var(--color-type-other); }
+
+.comparison-block { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--color-border); }
+.compare-row { font-size: 0.8rem; display: flex; justify-content: space-between; margin-bottom: 0.15rem; }
+.compare-label { color: var(--color-text-muted); }
+.stat-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.stat-pill { font-size: 0.7rem; background: var(--color-surface-alt); border-radius: 999px; padding: 0.15rem 0.5rem; }
+
+.week-group-title { margin-top: 1.2rem; color: var(--color-text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Segmented control */
+.segmented-control {
+  display: flex;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin: 0.75rem 0 1rem;
+}
+.segment {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 0.5rem;
+  border-radius: calc(var(--radius-sm) - 3px);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.segment.active { background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-card); }
+
+/* Calendar */
+.calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.calendar-title { font-weight: 700; }
+.cal-nav { background: var(--color-surface-alt); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; }
+.calendar-dow-row, .calendar-body { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.calendar-dow { text-align: center; font-size: 0.7rem; color: var(--color-text-muted); padding-bottom: 0.25rem; }
+.calendar-day {
+  aspect-ratio: 1;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.25rem 0.1rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.calendar-day.out-month { opacity: 0.35; }
+.calendar-day.today { border-color: var(--color-accent); border-width: 2px; }
+.calendar-day-chips { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; justify-content: center; }
+.cal-chip { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--color-accent); }
+.cal-chip.type-endurance { background: var(--color-type-endurance); }
+.cal-chip.type-recovery { background: var(--color-type-recovery); }
+.cal-chip.type-interval { background: var(--color-type-interval); }
+.cal-chip.type-tempo { background: var(--color-type-tempo); }
+.cal-chip.type-threshold { background: var(--color-type-threshold); }
+.cal-chip.type-vo2max { background: var(--color-type-vo2max); }
+.cal-chip.type-long_ride { background: var(--color-type-long_ride); }
+.cal-chip.type-race { background: var(--color-type-race); }
+.cal-chip.type-rest { background: var(--color-type-rest); }
+.cal-chip.type-cross_train { background: var(--color-type-cross_train); }
+.cal-chip.type-other { background: var(--color-type-other); }
+.cal-chip.status-missed { outline: 1.5px solid var(--color-danger); }
+.cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-muted); display: inline-block; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 15, 14, 0.5);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--color-surface);
+  width: 100%; max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (min-width: 640px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: var(--radius); max-height: 80vh; }
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; background: var(--color-surface); }
+.modal-header h3 { margin: 0; }
+.modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--color-text-muted); }
+.modal-body { padding: 1rem 1.25rem 1.5rem; }
+body.modal-open { overflow: hidden; }
+
+.day-modal-body .workout-card { margin-bottom: 0.6rem; }
+.unmatched-activity-card { background: var(--color-surface-alt); border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.9rem; }
+.unmatched-hint { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.2rem; }
+
+/* Forms */
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem; }
+.form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+.checkbox-row { display: flex; align-items: center; gap: 0.5rem; }
+.checkbox-row input { width: auto; margin: 0; }
+.plan-filter-row { font-size: 0.85rem; margin: 0 0 0.75rem; }
+fieldset.prompt-form { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; }
+fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
+
+/* File drop zone */
+.file-drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  background: var(--color-surface);
+  margin-bottom: 1rem;
+}
+.file-drop-zone.drag-active { border-color: var(--color-accent); background: var(--color-surface-alt); }
+.drop-zone-icon { font-size: 2rem; }
+.drop-zone-hint { font-size: 0.8rem; }
+
+/* Activity log */
+.activity-table { display: flex; flex-direction: column; gap: 0.4rem; }
+.activity-row { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; }
+.activity-row-main { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.activity-date { font-size: 0.75rem; color: var(--color-text-muted); }
+.activity-name { font-weight: 600; }
+.activity-format { font-size: 0.65rem; background: var(--color-surface-alt); border-radius: 4px; padding: 0.05rem 0.35rem; color: var(--color-text-muted); }
+.activity-row-stats { display: flex; gap: 0.7rem; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem; flex-wrap: wrap; }
+
+/* Import/export */
+.ie-section { margin-top: 1.5rem; }
+.export-buttons { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.import-status { font-size: 0.9rem; }
+.import-warnings, .import-errors { font-size: 0.8rem; padding-left: 1.1rem; }
+.import-errors { color: var(--color-danger); }
+.import-warnings { color: var(--color-warning); }
+.error-msg { color: var(--color-danger); }
+.success-msg { color: var(--color-success); }
+.diff-summary { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.6rem 0; }
+.diff-chip { font-size: 0.75rem; border-radius: 999px; padding: 0.15rem 0.6rem; background: var(--color-surface-alt); }
+.diff-added { color: var(--color-success); }
+.diff-removed { color: var(--color-danger); }
+
+.prompt-output { width: 100%; min-height: 220px; font-family: ui-monospace, monospace; font-size: 0.78rem; background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.7rem; margin-bottom: 0.5rem; }
+.copy-feedback { font-size: 0.8rem; color: var(--color-success); margin-left: 0.5rem; }

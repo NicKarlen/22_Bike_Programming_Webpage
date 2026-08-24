@@ -1,0 +1,9 @@
+/* Small per-view tweaks that don't belong in the generic component styles. */
+
+.dashboard-view .summary-cards { margin-top: 0.5rem; }
+
+.prompts-view textarea { font-family: inherit; }
+
+.settings-view fieldset + .ie-section { margin-top: 1rem; }
+
+.activities-view .view-subtitle { margin-bottom: 0.75rem; }

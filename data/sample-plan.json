@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-01T00:00:00Z",
+  "athlete": { "name": "Sample Athlete", "ftpWatts": 220, "maxHR": 185, "restingHR": 52 },
+  "goal": {
+    "eventName": "Sample Gran Fondo",
+    "eventDate": "2026-10-18",
+    "eventType": "gran_fondo",
+    "description": "100km, ~1200m climbing"
+  },
+  "planStart": "2026-08-25",
+  "planEnd": "2026-09-07",
+  "weeks": [
+    { "weekNumber": 1, "startDate": "2026-08-25", "focus": "Base building", "notes": "" },
+    { "weekNumber": 2, "startDate": "2026-09-01", "focus": "Base building + long ride", "notes": "" }
+  ],
+  "workouts": [
+    { "id": "2026-08-25-endurance-ride", "date": "2026-08-25", "weekNumber": 1, "title": "Endurance Ride", "type": "endurance", "sport": "road", "description": "Warmup 15min Z1, 90min Z2, cooldown 10min", "targets": { "durationMin": 105, "distanceKm": 40, "elevationM": 300, "intensity": "z2", "targetHRZone": "Z2", "targetPowerW": "150-170", "tss": 70 }, "status": "planned", "notes": "" },
+    { "id": "2026-08-26-recovery-spin", "date": "2026-08-26", "weekNumber": 1, "title": "Recovery Spin", "type": "recovery", "sport": "indoor", "description": "30min very easy, cadence focus", "targets": { "durationMin": 30, "distanceKm": null, "elevationM": null, "intensity": "z1", "targetHRZone": "Z1", "targetPowerW": null, "tss": 20 }, "status": "planned", "notes": "" },
+    { "id": "2026-08-27-intervals-4x5", "date": "2026-08-27", "weekNumber": 1, "title": "4x5min Threshold Intervals", "type": "threshold", "sport": "road", "description": "Warmup, 4x5min @ threshold w/ 5min recovery, cooldown", "targets": { "durationMin": 75, "distanceKm": 30, "elevationM": 150, "intensity": "z4", "targetHRZone": "Z4", "targetPowerW": "200-215", "tss": 85 }, "status": "planned", "notes": "" },
+    { "id": "2026-08-28-rest", "date": "2026-08-28", "weekNumber": 1, "title": "Rest Day", "type": "rest", "sport": "any", "description": "", "targets": {}, "status": "planned", "notes": "" },
+    { "id": "2026-08-29-tempo-ride", "date": "2026-08-29", "weekNumber": 1, "title": "Tempo Ride", "type": "tempo", "sport": "road", "description": "60min steady tempo effort", "targets": { "durationMin": 60, "distanceKm": 25, "elevationM": 200, "intensity": "z3", "targetHRZone": "Z3", "targetPowerW": "175-190", "tss": 60 }, "status": "planned", "notes": "" },
+    { "id": "2026-08-30-long-ride", "date": "2026-08-30", "weekNumber": 1, "title": "Long Endurance Ride", "type": "long_ride", "sport": "road", "description": "Steady Z2 long ride with rolling hills", "targets": { "durationMin": 180, "distanceKm": 75, "elevationM": 800, "intensity": "z2", "targetHRZone": "Z2", "targetPowerW": "150-170", "tss": 140 }, "status": "planned", "notes": "" },
+    { "id": "2026-08-31-recovery-spin", "date": "2026-08-31", "weekNumber": 1, "title": "Recovery Spin", "type": "recovery", "sport": "indoor", "description": "30min easy", "targets": { "durationMin": 30, "distanceKm": null, "elevationM": null, "intensity": "z1", "targetHRZone": "Z1", "targetPowerW": null, "tss": 20 }, "status": "planned", "notes": "" }
+  ]
+}
