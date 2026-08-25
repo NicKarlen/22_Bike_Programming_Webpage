@@ -3,6 +3,7 @@ import { estimateUsageBytes } from '../storage.js';
 import { buildFullBackup, downloadJson } from '../exportUtils.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { escapeAttr } from '../domUtils.js';
+import { APP_VERSION } from '../version.js';
 
 export function renderSettings(container) {
   const view = document.createElement('div');
@@ -45,6 +46,13 @@ export function renderSettings(container) {
       <p class="view-subtitle">Everything is stored only in this browser's local storage (~${usageKb} KB used). Nothing is sent anywhere — use the Export section above to back up or move data.</p>
       <button class="btn btn-danger" id="clear-data-btn">Clear all data</button>
     </section>
+
+    <section class="ie-section">
+      <h2>About</h2>
+      <p class="version-row">Version <strong>${APP_VERSION}</strong> · Offline support: <span id="sw-status">checking…</span></p>
+      <button class="btn btn-secondary" id="check-update-btn">Check for updates</button>
+      <span class="copy-feedback" id="update-feedback"></span>
+    </section>
   `;
 
   view.querySelector('#save-athlete-btn').addEventListener('click', () => {
@@ -75,7 +83,59 @@ export function renderSettings(container) {
 
   view.querySelector('#clear-data-btn').addEventListener('click', () => openClearDataConfirm());
 
+  updateSwStatusLine(view.querySelector('#sw-status'));
+  view.querySelector('#check-update-btn').addEventListener('click', () => {
+    checkForUpdates(view.querySelector('#update-feedback'));
+  });
+
   container.appendChild(view);
+}
+
+function updateSwStatusLine(el) {
+  if (!('serviceWorker' in navigator)) { el.textContent = 'not supported in this browser'; return; }
+  el.textContent = navigator.serviceWorker.controller ? 'active' : 'not active yet (reload once)';
+}
+
+// Forces the browser to re-check sw.js against what's actually deployed and reports back whether
+// a newer build was found — the reliable way to answer "am I up to date", since the service
+// worker's cache-first strategy (see sw.js) means the page can otherwise look fine while quietly
+// serving an old cached copy indefinitely.
+async function checkForUpdates(feedbackEl) {
+  if (!('serviceWorker' in navigator)) {
+    feedbackEl.textContent = 'Offline mode is not supported in this browser.';
+    return;
+  }
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) {
+    feedbackEl.textContent = 'No offline version installed yet — nothing to check.';
+    return;
+  }
+
+  feedbackEl.textContent = 'Checking…';
+  let foundUpdate = false;
+
+  const onControllerChange = () => {
+    foundUpdate = true;
+    feedbackEl.innerHTML = 'Update installed — <button type="button" class="link-btn" id="reload-now-btn">reload now</button>';
+    feedbackEl.querySelector('#reload-now-btn')?.addEventListener('click', () => location.reload());
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true });
+
+  try {
+    await reg.update();
+  } catch {
+    navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    feedbackEl.textContent = "Couldn't check for updates — check your connection.";
+    return;
+  }
+
+  // sw.js activates a new version immediately (skipWaiting + clients.claim) rather than waiting
+  // for tabs to close, so `controllerchange` above fires within a moment if an update was found —
+  // give it a beat, then report "up to date" if nothing happened.
+  setTimeout(() => {
+    navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    if (!foundUpdate) feedbackEl.textContent = 'You have the latest version.';
+  }, 1500);
 }
 
 function openClearDataConfirm() {

@@ -261,6 +261,8 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
 
 /* Import/export */
 .ie-section { margin-top: 1.5rem; }
+.version-row { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.6rem; }
+.version-row strong { color: var(--color-text); }
 .export-buttons { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .import-status { font-size: 0.9rem; }
 .import-warnings, .import-errors { font-size: 0.8rem; padding-left: 1.1rem; }
