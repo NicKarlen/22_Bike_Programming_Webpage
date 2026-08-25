@@ -32,7 +32,7 @@ export function renderDashboard(container) {
     <h1>Dashboard</h1>
 
     <div class="timeframe-row">
-      <span class="timeframe-range">${formatDisplayDate(stats.rangeStart)} – ${formatDisplayDate(stats.rangeEnd, { year: true })}</span>
+      <span class="timeframe-range">${formatDisplayDate(stats.rangeStart)} – ${formatDisplayDate(stats.rangeEnd, { year: true })}${stats.clamped ? ' <span class="timeframe-clamped-note">(since plan start)</span>' : ''}</span>
       <div class="timeframe-select">
         <div class="segmented-control">
           ${TIMEFRAMES.map((n) => `<button type="button" class="segment ${n === weeks ? 'active' : ''}" data-weeks="${n}">${n}w</button>`).join('')}
@@ -74,7 +74,7 @@ export function renderDashboard(container) {
       </div>
       <div class="summary-card">
         <div class="summary-value">${trendDisplay(stats.trendPct)}</div>
-        <div class="summary-label">vs previous ${weeks}w</div>
+        <div class="summary-label">vs previous ${spanWeeksLabel(stats.spanDays)}</div>
       </div>
     </section>
 
@@ -115,6 +115,13 @@ export function renderDashboard(container) {
   if (importBtn) importBtn.addEventListener('click', () => navigate('/activities'));
 
   container.appendChild(view);
+}
+
+// Labels the "vs previous …" comparison using the *actual* window length (which may be shorter
+// than the selected 4w/8w/12w button when the plan is younger than that — see statsUtils.js).
+function spanWeeksLabel(spanDays) {
+  if (spanDays % 7 === 0) return `${spanDays / 7}w`;
+  return spanDays === 1 ? '1d' : `${spanDays}d`;
 }
 
 function trendDisplay(trendPct) {

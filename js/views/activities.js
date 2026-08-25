@@ -41,7 +41,7 @@ async function handleFiles(files, container) {
   if (!summaryEl) return; // user navigated away while files were being parsed
 
   const lines = [];
-  lines.push(`<p class="import-status">✅ ${result.importedCount} imported${result.duplicateCount ? `, ${result.duplicateCount} already had this activity` : ''}${result.failed.length ? `, ${result.failed.length} failed` : ''}.</p>`);
+  lines.push(`<p class="import-status">✅ ${result.importedCount} imported${result.updatedCount ? `, ${result.updatedCount} updated` : ''}${result.failed.length ? `, ${result.failed.length} failed` : ''}.</p>`);
   if (result.warnings.length) {
     lines.push(`<ul class="import-warnings">${result.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>`);
   }

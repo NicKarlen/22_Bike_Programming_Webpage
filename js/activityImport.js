@@ -229,7 +229,7 @@ export function looksNonCycling(activity) {
  */
 export async function importFiles(files, existingActivities) {
   const byId = new Map(existingActivities.map((a) => [a.id, a]));
-  const result = { importedCount: 0, duplicateCount: 0, failed: [], warnings: [] };
+  const result = { importedCount: 0, updatedCount: 0, failed: [], warnings: [] };
 
   for (const file of Array.from(files)) {
     try {
@@ -238,15 +238,15 @@ export async function importFiles(files, existingActivities) {
         result.failed.push({ file: file.name, reason: 'Could not determine a start date.' });
         continue;
       }
-      if (byId.has(activity.id)) {
-        result.duplicateCount++;
-        continue;
-      }
       if (looksNonCycling(activity)) {
         result.warnings.push(`${file.name}: sport looks like "${activity.sport}" — imported anyway, check it belongs.`);
       }
+      // Re-importing a file whose id already exists *refreshes* that activity's record (e.g. to
+      // backfill fields added to the parser after it was first imported, like the chart `series`)
+      // rather than being silently skipped as a no-op duplicate.
+      if (byId.has(activity.id)) result.updatedCount++;
+      else result.importedCount++;
       byId.set(activity.id, activity);
-      result.importedCount++;
     } catch (err) {
       result.failed.push({ file: file.name, reason: err.message || String(err) });
     }
