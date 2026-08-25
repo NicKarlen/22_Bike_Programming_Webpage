@@ -3,6 +3,7 @@
 
 import { computeElevationGain, computeTrackDistanceMeters } from './geoUtils.js';
 import { toISODate } from './dateUtils.js';
+import { downsampleSeries } from './seriesUtils.js';
 
 const NS = {
   tcx: 'http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2',
@@ -45,6 +46,7 @@ function parseTCX(doc, fileName) {
   const sportAttr = (activityEl.getAttribute('Sport') || '').toLowerCase();
   const idEl = activityEl.getElementsByTagNameNS(NS.tcx, 'Id')[0] || activityEl.querySelector('Id');
   const startTime = idEl?.textContent?.trim() || null;
+  const activityStartDate = startTime ? new Date(startTime) : null;
 
   const laps = [...activityEl.getElementsByTagNameNS(NS.tcx, 'Lap'), ...activityEl.querySelectorAll('Lap')];
   const uniqueLaps = [...new Set(laps)];
@@ -57,6 +59,9 @@ function parseTCX(doc, fileName) {
   const trackpointHR = [];
   const trackpointPower = [];
   let maxSpeed = null;
+  // Per-point {tSec, hr, power, ele} samples, downsampled into `series` at the end — this is what
+  // powers the HR/power/elevation-over-time charts on the workout detail "Done" tab.
+  const rawPoints = [];
 
   uniqueLaps.forEach((lap) => {
     distanceM += num(lap, 'DistanceMeters', NS.tcx) ?? 0;
@@ -80,14 +85,22 @@ function parseTCX(doc, fileName) {
       const hrEl = tp.getElementsByTagNameNS(NS.tcx, 'HeartRateBpm')[0];
       const hr = hrEl ? num(hrEl, 'Value', NS.tcx) : null;
       if (hr != null) trackpointHR.push(hr);
+
       const tpx = tp.getElementsByTagNameNS(NS.tpx, 'TPX')[0];
+      let watts = null;
       if (tpx) {
-        const watts = num(tpx, 'Watts', NS.tpx);
+        watts = num(tpx, 'Watts', NS.tpx);
         if (watts != null) trackpointPower.push(watts);
         const spd = num(tpx, 'Speed', NS.tpx);
         if (spd != null) maxSpeed = Math.max(maxSpeed ?? 0, spd);
         const tpxCad = num(tpx, 'RunCadence', NS.tpx) ?? num(tpx, 'Cadence', NS.tpx);
         if (tpxCad != null) { cadSum += tpxCad; cadCount++; maxCad = Math.max(maxCad ?? 0, tpxCad); }
+      }
+
+      const timeEl = tp.getElementsByTagNameNS(NS.tcx, 'Time')[0];
+      const tDate = timeEl?.textContent ? new Date(timeEl.textContent.trim()) : null;
+      if (activityStartDate && tDate && !isNaN(tDate.getTime())) {
+        rawPoints.push({ tSec: (tDate - activityStartDate) / 1000, hr, power: watts, ele: alt });
       }
     });
   });
@@ -99,15 +112,14 @@ function parseTCX(doc, fileName) {
   const avgCadenceRpm = cadCount ? Math.round(cadSum / cadCount) : null;
   const elevationGainM = altitudes.length > 1 ? computeElevationGain(altitudes) : null;
   const avgSpeedMs = durationSec > 0 ? distanceM / durationSec : null;
-
-  const dateObj = startTime ? new Date(startTime) : null;
+  const series = downsampleSeries(rawPoints);
 
   return {
     id: startTime || `tcx-${fileName}`,
     activityName: fileName.replace(/\.[^.]+$/, ''),
     sport: sportAttr || 'unknown',
     startTimeLocal: startTime,
-    date: dateObj ? toISODate(dateObj) : null,
+    date: activityStartDate ? toISODate(activityStartDate) : null,
     durationSec: durationSec || null,
     distanceM: distanceM || null,
     elevationGainM,
@@ -117,6 +129,7 @@ function parseTCX(doc, fileName) {
     avgPowerW, maxPowerW,
     avgCadenceRpm, maxCadenceRpm: maxCad,
     sourceFormat: 'tcx',
+    series,
   };
 }
 
@@ -129,34 +142,45 @@ function parseGPX(doc, fileName) {
   const hrValues = [];
   const cadValues = [];
   let firstTime = null, lastTime = null;
+  // Per-point {tSec, hr, power, ele} samples for the HR/elevation-over-time charts (GPX carries no
+  // standard power field, so `power` stays null here — see parseTCX for the TCX/TPX equivalent).
+  const rawPoints = [];
 
   trkpts.forEach((tp) => {
     const lat = parseFloat(tp.getAttribute('lat'));
     const lon = parseFloat(tp.getAttribute('lon'));
     points.push({ lat, lon });
 
+    let alt = null;
     const eleEl = tp.querySelector('ele');
     if (eleEl) {
-      const alt = parseFloat(eleEl.textContent);
-      if (!isNaN(alt)) altitudes.push(alt);
+      const v = parseFloat(eleEl.textContent);
+      if (!isNaN(v)) { alt = v; altitudes.push(v); }
     }
+    let tDate = null;
     const timeEl = tp.querySelector('time');
     if (timeEl) {
       const t = new Date(timeEl.textContent);
       if (!isNaN(t.getTime())) {
+        tDate = t;
         if (!firstTime) firstTime = t;
         lastTime = t;
       }
     }
+    let hr = null;
     const hrEl = tp.getElementsByTagNameNS(NS.gpxtpx, 'hr')[0] || tp.querySelector('hr');
     if (hrEl) {
-      const hr = parseFloat(hrEl.textContent);
-      if (!isNaN(hr)) hrValues.push(hr);
+      const v = parseFloat(hrEl.textContent);
+      if (!isNaN(v)) { hr = v; hrValues.push(v); }
     }
     const cadEl = tp.getElementsByTagNameNS(NS.gpxtpx, 'cad')[0] || tp.querySelector('cad');
     if (cadEl) {
       const cad = parseFloat(cadEl.textContent);
       if (!isNaN(cad)) cadValues.push(cad);
+    }
+
+    if (tDate && firstTime) {
+      rawPoints.push({ tSec: (tDate - firstTime) / 1000, hr, power: null, ele: alt });
     }
   });
 
@@ -171,6 +195,7 @@ function parseGPX(doc, fileName) {
 
   const trackName = doc.querySelector('trk > name')?.textContent?.trim();
   const startTimeLocal = firstTime ? firstTime.toISOString() : null;
+  const series = downsampleSeries(rawPoints);
 
   return {
     id: startTimeLocal || `gpx-${fileName}`,
@@ -187,6 +212,7 @@ function parseGPX(doc, fileName) {
     avgPowerW: null, maxPowerW: null,
     avgCadenceRpm, maxCadenceRpm,
     sourceFormat: 'gpx',
+    series,
   };
 }
 

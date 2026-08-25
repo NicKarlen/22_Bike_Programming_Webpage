@@ -3,10 +3,11 @@
 // shown mixed together in one wall of fields (see the old workoutForm-as-viewer behavior this
 // replaces).
 
-import { formatDisplayDate } from '../dateUtils.js';
+import { formatDisplayDate, formatDuration } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
 import { statusLabel, statusGlyph } from '../statusMeta.js';
 import { buildTargetChips, buildComparisonBlock } from './comparisonBlock.js';
+import { buildSeriesChart } from './seriesChart.js';
 import { closeModal } from './modal.js';
 import { navigate } from '../router.js';
 
@@ -82,7 +83,7 @@ function extraTargetRows(targets) {
 }
 
 function row(label, value) {
-  return `<div class="compare-row"><span class="compare-label">${label}</span><span class="compare-values"><strong>${value}</strong></span></div>`;
+  return `<div class="compare-row"><div class="compare-row-top"><span class="compare-label">${label}</span><span class="compare-values"><strong>${value}</strong></span></div></div>`;
 }
 
 function doneTabHtml(c, hasActual, matchEntry) {
@@ -92,11 +93,52 @@ function doneTabHtml(c, hasActual, matchEntry) {
       <button type="button" class="btn btn-secondary" data-action="go-activities">Import a ride from Activities</button>
     `;
   }
-  const activityNames = (matchEntry.activities || [])
-    .map((a) => escapeHtml(a.activityName || 'Ride'))
-    .join(', ');
+  const activities = matchEntry.activities || [];
+  const activityNames = activities.map((a) => escapeHtml(a.activityName || 'Ride')).join(', ');
+
   return `
     ${activityNames ? `<p class="detail-matched-from">From: ${activityNames}</p>` : ''}
+    ${activities.length > 1 ? buildPerRideBreakdown(activities) : ''}
     ${buildComparisonBlock(c)}
+    ${buildRideChartsHtml(activities)}
   `;
+}
+
+// Shown only when 2+ rides matched the same planned workout — otherwise the aggregated totals in
+// buildComparisonBlock() already represent the single ride exactly, and repeating it here would
+// just be noise.
+function buildPerRideBreakdown(activities) {
+  const rows = activities.map((a) => `
+    <div class="ride-row">
+      <div class="ride-row-name">${escapeHtml(a.activityName || 'Ride')}</div>
+      <div class="ride-row-stats">
+        ${a.distanceM != null ? `<span>${(a.distanceM / 1000).toFixed(1)}km</span>` : ''}
+        ${a.durationSec != null ? `<span>${formatDuration(a.durationSec)}</span>` : ''}
+        ${a.avgHR != null ? `<span>HR ${a.avgHR}</span>` : ''}
+        ${a.avgPowerW != null ? `<span>${a.avgPowerW}W</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+  return `<div class="detail-section"><h3>Rides (${activities.length})</h3><div class="ride-breakdown">${rows}</div></div>`;
+}
+
+// Per-ride HR/power/elevation-over-time charts, only for activities that have a stored `series`
+// (see js/seriesUtils.js) — activities imported before that field existed simply show no charts.
+function buildRideChartsHtml(activities) {
+  return activities.map((a) => buildChartsForRide(a, activities.length > 1)).filter(Boolean).join('');
+}
+
+function buildChartsForRide(activity, showRideLabel) {
+  const series = activity.series;
+  if (!series) return '';
+  const charts = [
+    buildSeriesChart(series, { metric: 'hrBpm', kind: 'line', color: 'var(--status-missed-border)', unit: ' bpm', label: 'Heart rate' }),
+    buildSeriesChart(series, { metric: 'powerW', kind: 'line', color: 'var(--color-accent)', unit: 'W', label: 'Power' }),
+    buildSeriesChart(series, { metric: 'elevationM', kind: 'area', color: 'var(--color-type-recovery)', unit: 'm', label: 'Elevation' }),
+  ].filter(Boolean);
+  if (!charts.length) return '';
+  return `<div class="detail-section">
+    ${showRideLabel ? `<h3>${escapeHtml(activity.activityName || 'Ride')}</h3>` : ''}
+    ${charts.map((el) => el.outerHTML).join('')}
+  </div>`;
 }

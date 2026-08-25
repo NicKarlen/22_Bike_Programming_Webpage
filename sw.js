@@ -1,6 +1,6 @@
 // App-shell cache-first service worker. Bump CACHE_NAME on every deploy that changes
 // any cached file so clients pick up the new version instead of a stale cache.
-const CACHE_NAME = 'bikeapp-shell-v2';
+const CACHE_NAME = 'bikeapp-shell-v3';
 
 const SHELL_FILES = [
   './',
@@ -24,6 +24,7 @@ const SHELL_FILES = [
   './js/domUtils.js',
   './js/statusMeta.js',
   './js/statsUtils.js',
+  './js/seriesUtils.js',
   './js/idUtils.js',
   './js/geoUtils.js',
   './js/components/modal.js',
@@ -32,6 +33,7 @@ const SHELL_FILES = [
   './js/components/workoutDetail.js',
   './js/components/comparisonBlock.js',
   './js/components/weeklyChart.js',
+  './js/components/seriesChart.js',
   './js/components/workoutForm.js',
   './js/components/fileDropZone.js',
   './js/views/dashboard.js',

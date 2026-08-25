@@ -84,7 +84,10 @@ function emptyComparison() {
     plannedElevationM: null, actualElevationM: null,
     plannedDurationMin: null, actualDurationMin: null,
     actualAvgHR: null, actualMaxHR: null,
-    actualAvgPowerW: null, actualCalories: null,
+    actualAvgPowerW: null, actualMaxPowerW: null,
+    actualAvgCadenceRpm: null, actualMaxCadenceRpm: null,
+    actualAvgSpeedKmh: null, actualMaxSpeedKmh: null,
+    actualCalories: null,
     hrZoneStatus: null,
   };
 }
@@ -114,6 +117,13 @@ function buildComparison(workout, matchedActivities) {
   c.actualAvgHR = weightedAvg((a) => a.avgHR);
   c.actualMaxHR = anyMax((a) => a.maxHR);
   c.actualAvgPowerW = weightedAvg((a) => a.avgPowerW);
+  c.actualMaxPowerW = anyMax((a) => a.maxPowerW);
+  c.actualAvgCadenceRpm = weightedAvg((a) => a.avgCadenceRpm);
+  c.actualMaxCadenceRpm = anyMax((a) => a.maxCadenceRpm);
+  const avgSpeedKmh = weightedAvg((a) => (a.avgSpeedMs != null ? a.avgSpeedMs * 3.6 : null));
+  const maxSpeedKmh = anyMax((a) => (a.maxSpeedMs != null ? a.maxSpeedMs * 3.6 : null));
+  c.actualAvgSpeedKmh = avgSpeedKmh != null ? round1(avgSpeedKmh) : null;
+  c.actualMaxSpeedKmh = maxSpeedKmh != null ? round1(maxSpeedKmh) : null;
   c.actualCalories = Math.round(sum((a) => a.calories || 0)) || null;
 
   c.hrZoneStatus = deriveHrZoneStatus(workout.targets?.targetHRZone, c.actualAvgHR);
