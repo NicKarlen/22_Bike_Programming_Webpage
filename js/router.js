@@ -4,9 +4,16 @@ const routes = new Map();
 let container = null;
 let navContainer = null;
 let currentPath = null;
+let lastRenderedPath = null;
 
-export function registerView(path, renderFn, navMeta) {
-  routes.set(path, { renderFn, navMeta });
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.skipAutoScrollTop]  On genuine navigation into this route (not a
+ *   state-driven re-render while already on it), skip the default scroll-to-top and instead
+ *   scroll to the element marked `[data-scroll-target]`, if the view rendered one.
+ */
+export function registerView(path, renderFn, navMeta, options = {}) {
+  routes.set(path, { renderFn, navMeta, options });
 }
 
 export function init({ appContainer, navEl, defaultPath = '/dashboard' }) {
@@ -30,10 +37,21 @@ export function renderCurrentRoute() {
   const path = (location.hash || '#/dashboard').slice(1);
   currentPath = routes.has(path) ? path : '/dashboard';
   const route = routes.get(currentPath);
+  const isNavigation = currentPath !== lastRenderedPath;
   container.innerHTML = '';
   route.renderFn(container);
   highlightNav();
-  window.scrollTo(0, 0);
+
+  if (route.options?.skipAutoScrollTop) {
+    if (isNavigation) {
+      requestAnimationFrame(() => {
+        container.querySelector('[data-scroll-target]')?.scrollIntoView({ block: 'center' });
+      });
+    }
+  } else {
+    window.scrollTo(0, 0);
+  }
+  lastRenderedPath = currentPath;
 }
 
 function renderNav() {

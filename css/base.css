@@ -24,6 +24,14 @@
   --color-type-cross_train: #059669;
   --color-type-other: #6b7280;
 
+  /* Status tint/border pairs — the dominant visual signal on workout cards (see components.css). */
+  --status-planned-bg: #ffffff;      --status-planned-border: #9aa5a2;
+  --status-completed-bg: #eaf6ec;    --status-completed-border: #1a7f37;
+  --status-partial-bg: #fbf3e2;      --status-partial-border: #9a6700;
+  --status-missed-bg: #fbeceb;       --status-missed-border: #b3261e;
+  --status-rested-bg: #eaf1f5;       --status-rested-border: #4c7286;
+  --status-extra-bg: #eef2ff;        --status-extra-border: #0f766e;
+
   --radius: 12px;
   --radius-sm: 8px;
   --shadow-card: 0 1px 3px rgba(20, 30, 28, 0.08), 0 1px 2px rgba(20, 30, 28, 0.06);
@@ -41,6 +49,13 @@
     --color-accent: #2dd4bf;
     --color-accent-hover: #5eead4;
     --color-accent-contrast: #08201c;
+
+    --status-planned-bg: #1b2422;      --status-planned-border: #6b7a76;
+    --status-completed-bg: #16281c;    --status-completed-border: #3fb464;
+    --status-partial-bg: #2b2311;      --status-partial-border: #d8a536;
+    --status-missed-bg: #2b1715;       --status-missed-border: #e0655c;
+    --status-rested-bg: #17262c;       --status-rested-border: #7fa9bd;
+    --status-extra-bg: #17242a;        --status-extra-border: #2dd4bf;
   }
 }
 

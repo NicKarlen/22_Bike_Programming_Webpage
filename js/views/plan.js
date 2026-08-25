@@ -2,8 +2,11 @@ import { state, setUi, addWorkout, updateWorkout, deleteWorkout } from '../state
 import { buildWorkoutCard } from '../components/workoutCard.js';
 import { buildCalendarGrid } from '../components/calendarGrid.js';
 import { buildWorkoutForm } from '../components/workoutForm.js';
+import { buildWorkoutDetail } from '../components/workoutDetail.js';
 import { openModal, closeModal } from '../components/modal.js';
-import { startOfWeek, formatDisplayDate } from '../dateUtils.js';
+import { startOfWeek, formatDisplayDate, todayISO } from '../dateUtils.js';
+import { escapeHtml } from '../domUtils.js';
+import { STATUS_LEGEND_ORDER, statusLabel, statusGlyph } from '../statusMeta.js';
 
 export function renderPlan(container) {
   const view = document.createElement('div');
@@ -71,9 +74,11 @@ function buildListView() {
     byWeek.get(weekStart).push(w);
   });
 
+  const todayWeekStart = startOfWeek(todayISO());
   [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b)).forEach(([weekStart, workouts]) => {
     const section = document.createElement('section');
     section.className = 'week-group';
+    if (weekStart === todayWeekStart) section.dataset.scrollTarget = 'today';
     const h = document.createElement('h3');
     h.className = 'week-group-title';
     h.textContent = `Week of ${formatDisplayDate(weekStart)}`;
@@ -93,7 +98,9 @@ function buildListView() {
 }
 
 function buildCalendarView() {
-  return buildCalendarGrid({
+  const wrap = document.createElement('div');
+  wrap.appendChild(buildStatusLegend());
+  wrap.appendChild(buildCalendarGrid({
     year: state.ui.calendarYear,
     month: state.ui.calendarMonth,
     plan: { ...state.plan, workouts: visibleWorkouts() },
@@ -101,10 +108,37 @@ function buildCalendarView() {
     unmatchedActivities: state.matches.unmatchedActivities,
     onNavigate: (y, m) => setUi({ calendarYear: y, calendarMonth: m }),
     onDayClick: (dateStr) => openDayModal(dateStr),
-  });
+  }));
+  return wrap;
 }
 
+function buildStatusLegend() {
+  const legend = document.createElement('div');
+  legend.className = 'status-legend';
+  legend.innerHTML = STATUS_LEGEND_ORDER.map((s) => `
+    <span class="status-legend-item"><span class="status-legend-swatch status-${s}"></span>${statusGlyph(s)} ${statusLabel(s)}</span>
+  `).join('');
+  return legend;
+}
+
+// Existing workouts open the read-only detail view (Planned/Done tabs); a brand-new workout
+// (no `existing`) skips straight to the edit form, since there's nothing to view yet.
 function openWorkoutModal(existing, defaultDate) {
+  if (existing) openWorkoutDetailModal(existing);
+  else openWorkoutEditModal(null, defaultDate);
+}
+
+function openWorkoutDetailModal(workout) {
+  const match = state.matches.matchesByWorkoutId.get(workout.id);
+  const detail = buildWorkoutDetail({
+    workout,
+    matchEntry: match,
+    onEdit: () => { closeModal(); openWorkoutEditModal(workout); },
+  });
+  openModal({ title: workout.title, bodyEl: detail });
+}
+
+function openWorkoutEditModal(existing, defaultDate) {
   const form = buildWorkoutForm({
     existing,
     defaultDate: defaultDate || existing?.date,
@@ -153,8 +187,4 @@ function openDayModal(dateStr) {
   body.appendChild(addBtn);
 
   openModal({ title: formatDisplayDate(dateStr, { year: true }), bodyEl: body });
-}
-
-function escapeHtml(str) {
-  return (str || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }

@@ -64,8 +64,14 @@ export function formatDuration(totalSeconds) {
   if (totalSeconds == null || isNaN(totalSeconds)) return '–';
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.round((totalSeconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+/** Same as formatDuration, but takes whole minutes — for fields stored as durationMin. */
+export function formatDurationMin(totalMinutes) {
+  if (totalMinutes == null || isNaN(totalMinutes)) return '–';
+  return formatDuration(totalMinutes * 60);
 }
 
 export function formatDistance(meters) {

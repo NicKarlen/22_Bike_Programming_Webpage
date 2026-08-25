@@ -1,7 +1,10 @@
-import { state, setSettingsSilent } from '../state.js';
+import { state, setSettingsSilent, setPlan } from '../state.js';
 import { buildCreatePlanPrompt, buildUpdatePlanPrompt, computeRecentTrainingSummary } from '../promptTemplates.js';
 import { todayISO } from '../dateUtils.js';
 import { buildExportForClaude } from '../exportUtils.js';
+import { validatePlan, normalizePlan, diffPlans } from '../schema.js';
+import { navigate } from '../router.js';
+import { escapeHtml, escapeAttr } from '../domUtils.js';
 
 let activeTab = 'create';
 
@@ -11,12 +14,20 @@ export function renderPrompts(container) {
 
   view.innerHTML = `
     <h1>Prompts</h1>
-    <p class="view-subtitle">Copy a prompt into <strong>claude.ai</strong> (a separate tab/app — this site doesn't connect to Claude directly). Paste the JSON it gives you back into Import/Export.</p>
+    <p class="view-subtitle">Copy a prompt into <strong>claude.ai</strong> (a separate tab/app — this site doesn't connect to Claude directly). Paste the JSON it gives you back into the "Import a plan" section below.</p>
     <div class="segmented-control">
       <button class="segment ${activeTab === 'create' ? 'active' : ''}" data-tab="create">Create plan</button>
       <button class="segment ${activeTab === 'update' ? 'active' : ''}" data-tab="update">Update plan</button>
     </div>
     <div id="prompt-tab-content"></div>
+
+    <section class="ie-section">
+      <h2>Import a plan</h2>
+      <p class="view-subtitle">Paste the JSON Claude gave you above back in here.</p>
+      <textarea id="plan-json-input" class="wide-textarea" rows="10" placeholder="Paste plan JSON here..."></textarea>
+      <button class="btn btn-primary" id="validate-plan-btn">Validate &amp; preview</button>
+      <div id="plan-import-result"></div>
+    </section>
   `;
 
   view.querySelectorAll('.segment').forEach((btn) => {
@@ -29,6 +40,8 @@ export function renderPrompts(container) {
   const content = view.querySelector('#prompt-tab-content');
   if (activeTab === 'create') content.appendChild(buildCreateTab(view));
   else content.appendChild(buildUpdateTab());
+
+  view.querySelector('#validate-plan-btn').addEventListener('click', () => handleValidate(container));
 
   container.appendChild(view);
   // allow the segment click handler above to trigger a full re-render of this view
@@ -117,9 +130,52 @@ function renderPromptOutput(slot, prompt) {
   });
 }
 
-function escapeHtml(str) {
-  return (str || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-}
-function escapeAttr(str) {
-  return escapeHtml(str).replace(/"/g, '&quot;');
+// `container` (the router's stable node) is passed in, not the view element built in
+// renderPrompts, because setPlan() below triggers a full re-render of the current route —
+// writing into a DOM node captured before that happens would be invisible (detached).
+function handleValidate(container) {
+  const view = container.querySelector('.prompts-view');
+  const resultEl = view.querySelector('#plan-import-result');
+  const raw = view.querySelector('#plan-json-input').value;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    resultEl.innerHTML = `<p class="error-msg">Not valid JSON: ${escapeHtml(err.message)}</p>`;
+    return;
+  }
+
+  // Accept either a bare plan object, or a full-backup export ({ plan: {...} }).
+  const planCandidate = parsed.workouts ? parsed : parsed.plan;
+  if (!planCandidate) {
+    resultEl.innerHTML = `<p class="error-msg">Couldn't find a "workouts" array — is this the right JSON?</p>`;
+    return;
+  }
+
+  const validation = validatePlan(planCandidate);
+  if (!validation.valid) {
+    resultEl.innerHTML = `<p class="error-msg">This plan has problems and can't be imported:</p><ul class="import-errors">${validation.errors.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`;
+    return;
+  }
+
+  const normalized = normalizePlan(planCandidate);
+  const diff = diffPlans(state.plan, normalized);
+
+  resultEl.innerHTML = `
+    ${validation.warnings.length ? `<ul class="import-warnings">${validation.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>` : ''}
+    <div class="diff-summary">
+      <span class="diff-chip diff-added">+${diff.added} new</span>
+      <span class="diff-chip diff-changed">${diff.changed} changed</span>
+      <span class="diff-chip diff-removed">-${diff.removed} removed</span>
+      <span class="diff-chip diff-unchanged">${diff.unchanged} unchanged</span>
+    </div>
+    <p>This will <strong>replace</strong> your current plan (${diff.totalOld} workouts) with the new one (${diff.totalNew} workouts).</p>
+    <button class="btn btn-primary" id="confirm-import-btn">Replace plan</button>
+  `;
+
+  resultEl.querySelector('#confirm-import-btn').addEventListener('click', () => {
+    setPlan(normalized); // triggers a full re-render of this route synchronously
+    navigate('/plan');
+  });
 }

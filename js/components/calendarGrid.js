@@ -1,6 +1,7 @@
 // Hand-rolled month calendar grid (no CDN dependency, so PWA offline caching stays simple).
 
 import { getMonthMatrix, formatMonthYear, todayISO } from '../dateUtils.js';
+import { escapeAttr } from '../domUtils.js';
 
 /**
  * @param {number} year
@@ -64,6 +65,7 @@ export function buildCalendarGrid({ year, month, plan, matchesByWorkoutId, unmat
       const dayEl = document.createElement('button');
       dayEl.type = 'button';
       dayEl.className = 'calendar-day' + (cell.inMonth ? '' : ' out-month') + (cell.date === today ? ' today' : '');
+      if (cell.date === today) dayEl.dataset.scrollTarget = 'today';
       const dayNum = Number(cell.date.slice(-2));
 
       const dayWorkouts = workoutsByDate.get(cell.date) || [];
@@ -71,7 +73,8 @@ export function buildCalendarGrid({ year, month, plan, matchesByWorkoutId, unmat
 
       const chips = dayWorkouts.map((w) => {
         const status = matchesByWorkoutId.get(w.id)?.completionStatus || 'planned';
-        return `<span class="cal-chip type-${w.type} status-${status}" title="${escapeAttr(w.title)}"></span>`;
+        // Fill = status (dominant signal), ring = workout type (secondary accent).
+        return `<span class="cal-chip status-${status} type-ring-${w.type}" title="${escapeAttr(w.title)}"></span>`;
       }).join('');
       const extraDot = dayUnmatched.length ? '<span class="cal-dot" title="Unplanned ride"></span>' : '';
 
@@ -83,8 +86,4 @@ export function buildCalendarGrid({ year, month, plan, matchesByWorkoutId, unmat
   root.appendChild(body);
 
   return root;
-}
-
-function escapeAttr(str) {
-  return (str || '').replace(/"/g, '&quot;');
 }

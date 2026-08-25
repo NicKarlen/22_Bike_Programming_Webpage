@@ -16,7 +16,7 @@ export const state = {
   activities: load(STORAGE_KEYS.ACTIVITIES, []),
   manualMatches: load(STORAGE_KEYS.MANUAL_MATCHES, {}),
   settings: load(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
-  ui: { planViewMode: 'list', calendarYear: new Date().getFullYear(), calendarMonth: new Date().getMonth(), showRestDays: false },
+  ui: { planViewMode: 'list', calendarYear: new Date().getFullYear(), calendarMonth: new Date().getMonth(), showRestDays: false, dashboardTimeframeWeeks: 8 },
   matches: { matchesByWorkoutId: new Map(), unmatchedActivities: [] },
 };
 

@@ -5,17 +5,15 @@ import { renderDashboard } from './views/dashboard.js';
 import { renderPlan } from './views/plan.js';
 import { renderActivities } from './views/activities.js';
 import { renderPrompts } from './views/prompts.js';
-import { renderImportExport } from './views/importExport.js';
 import { renderSettings } from './views/settings.js';
 
 registerView('/dashboard', renderDashboard, { label: 'Dashboard', icon: '🏠' });
-registerView('/plan', renderPlan, { label: 'Plan', icon: '📅' });
+// skipAutoScrollTop: the Plan view marks today's position with [data-scroll-target] and the
+// router scrolls there on navigation instead of jumping to the top — see router.js.
+registerView('/plan', renderPlan, { label: 'Plan', icon: '📅' }, { skipAutoScrollTop: true });
 registerView('/activities', renderActivities, { label: 'Activities', icon: '🚴' });
 registerView('/prompts', renderPrompts, { label: 'Prompts', icon: '✨' });
 registerView('/settings', renderSettings, { label: 'Settings', icon: '⚙️' });
-// Reachable via links (e.g. from Prompts/Dashboard) without its own bottom-nav slot,
-// to keep the nav to 5 items on small phone screens.
-registerView('/import-export', renderImportExport, null);
 
 onStateChange(() => renderCurrentRoute());
 

@@ -50,7 +50,7 @@ export function computeMatches(plan, activities, manualMatches = {}) {
       matchesByWorkoutId.set(workout.id, {
         activities: [],
         comparison: emptyComparison(),
-        completionStatus: isPast(workout.date) ? 'missed' : 'planned',
+        completionStatus: isPast(workout.date) ? (isRestLike(workout) ? 'rested' : 'missed') : 'planned',
       });
       continue;
     }
@@ -128,9 +128,16 @@ function deriveHrZoneStatus(targetZoneLabel, actualAvgHR) {
   return 'recorded';
 }
 
+// Types where "did nothing that day" is the plan itself, not a missed session —
+// a past-dated, unmatched workout of one of these types should read as "Rested", not "Missed".
+const RESTFUL_TYPES = new Set(['rest', 'recovery']);
+function isRestLike(workout) {
+  return RESTFUL_TYPES.has(workout.type);
+}
+
 function deriveStatus(workout, comparison) {
   const hasActual = comparison.actualDistanceKm != null || comparison.actualDurationMin != null;
-  if (!hasActual) return isPast(workout.date) ? 'missed' : 'planned';
+  if (!hasActual) return isPast(workout.date) ? (isRestLike(workout) ? 'rested' : 'missed') : 'planned';
 
   const planned = comparison.plannedDistanceKm ?? comparison.plannedDurationMin;
   const actual = comparison.actualDistanceKm ?? comparison.actualDurationMin;

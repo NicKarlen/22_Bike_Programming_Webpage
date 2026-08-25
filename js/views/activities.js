@@ -2,6 +2,7 @@ import { state, setActivities } from '../state.js';
 import { buildFileDropZone } from '../components/fileDropZone.js';
 import { importFiles } from '../activityImport.js';
 import { formatDisplayDate, formatDistance, formatElevation, formatDuration } from '../dateUtils.js';
+import { escapeHtml } from '../domUtils.js';
 
 export function renderActivities(container) {
   const view = document.createElement('div');
@@ -82,8 +83,4 @@ function renderLog(view) {
     table.appendChild(row);
   });
   logEl.appendChild(table);
-}
-
-function escapeHtml(str) {
-  return (str || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }

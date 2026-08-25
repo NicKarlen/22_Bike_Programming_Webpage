@@ -20,17 +20,18 @@ browser. See `data/` for a sample plan fixture used only in local development.
 1. Open the deployed site (see hosting below) on your phone or in a browser.
 2. **Get a plan:** go to **Prompts → Create plan**, fill in your goal (optional), tap
    **Generate prompt**, copy it, paste it into a claude.ai conversation. Copy Claude's JSON reply
-   and paste it into **Import/Export → Import a plan**.
+   and paste it into the **Import a plan** section further down the same Prompts page.
 3. **Log rides:** in Garmin Connect (works from your phone's browser, not the native app —
    the native app doesn't offer file export), open a ride → the settings/gear menu → **Export to
    TCX** (preferred — carries HR/power/cadence) or **Export to GPX**. Upload the file(s) in the
    **Activities** tab — you can select many at once.
 4. Your plan (**Plan** tab, List or Calendar) will automatically show actual vs. planned stats
-   for any day where a ride was imported.
+   for any day where a ride was imported. Click a workout to see its **Planned** vs **Done** tabs.
 5. **Update your plan later:** go to **Prompts → Update plan**, generate the prompt (it includes
    your plan + results automatically), paste into Claude, then import the JSON it returns the
    same way as step 2 — it fully replaces the stored plan (you'll see a diff preview first).
-6. Use **Import/Export → Download full backup JSON** any time to back up everything.
+6. Use **Settings → Export / backup → Download full backup JSON** any time to back up everything
+   locally. That's a personal backup only — it doesn't talk to Claude; use step 5 for that.
 
 ## Hosting on GitHub Pages
 
