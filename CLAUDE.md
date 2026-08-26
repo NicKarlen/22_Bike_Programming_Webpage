@@ -1,1 +1,3 @@
 When the user is about to commit changes, remind them (or do it yourself if asked) to bump `APP_VERSION` in `js/version.js` and `CACHE_NAME` in `sw.js` — they should move together on every release.
+
+This bit us for real once already: the "Version 0.4" commit changed 5 cached files (`activityImport.js`, `statsUtils.js`, `dashboard.js`, `activities.js`, `components.css`) but didn't bump `CACHE_NAME`. Since the service worker only re-installs/re-caches when `sw.js` itself changes byte-for-byte, browsers with an existing service worker kept serving their old cached copies of those files indefinitely — the fixes were correct and deployed, but looked completely broken to the user because their browser never fetched them. Don't let this happen again.
