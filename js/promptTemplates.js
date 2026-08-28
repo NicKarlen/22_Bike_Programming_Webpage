@@ -26,15 +26,13 @@ const SCHEMA_BLOCK = `{
         "intensity": string|null, "targetHRZone": string|null, "targetPowerW": string|null, "tss": number|null
       },
       "status": "planned",
-      "notes": "",
-      "doneNotes": ""
+      "notes": ""
     }
   ]
 }`;
-// "notes" = pre-workout coaching intent, written before the ride happens (shown on the app's
-// Planned tab). "doneNotes" = retrospective commentary written after, e.g. "held power well in
-// the back half" (shown on the Done tab). Keep these separate — never write retrospective
-// commentary into "notes" or vice versa.
+// Per-workout "notes" is shown on the app's Done tab, not the Planned tab (which has
+// "description" for pre-workout intent) — so it reads best as commentary on how the workout
+// actually went, not as instructions for before it happens.
 
 export function computeRecentTrainingSummary(activities, weeks = 10) {
   if (!activities?.length) return null;
@@ -84,8 +82,7 @@ export function buildCreatePlanPrompt({ today, goal, athlete, recentSummary, inc
 - Generate each workout "id" as "<date>-<short-slug>", e.g. "2026-09-01-endurance-ride".
 - Use only the listed values for "type" and "sport" where they apply.
 - Build a realistic week-by-week progression (varying intensity/volume, including recovery weeks) appropriate to the goal date and my recent training load.
-- Every workout needs a "date" in the plan's date range — don't leave gaps unless a day is deliberately a rest day (use "type": "rest").
-- Leave "doneNotes" empty ("") on every workout — nothing's happened yet, there's nothing to report on.`);
+- Every workout needs a "date" in the plan's date range — don't leave gaps unless a day is deliberately a rest day (use "type": "rest").`);
 
   return parts.join('\n');
 }
@@ -102,7 +99,7 @@ export function buildUpdatePlanPrompt({ exportObj, userNote }) {
 
   parts.push(`\nNote on "workoutComparisons[].actualAvgPowerW"/"actualAvgHR": these are whole-ride averages, including warmup/cooldown/rest. Where "workingSetRides" is present on a workout, that's my own manually-marked "working set" — a race's actual race-time window, or a structured workout's real intervals — with per-segment averages plus (when there's more than one segment) that ride's combined average across all of them. Prefer those numbers over the whole-ride ones when judging how an interval session or race actually went.`);
 
-  parts.push(`\nReturn a FULL REPLACEMENT plan as a single JSON object, in the exact same schema as "currentPlan" above ("schemaVersion": ${PLAN_SCHEMA_VERSION}, same "workouts" field shape). For each COMPLETED workout (one with a "workoutComparisons" entry showing actual results), write a short "doneNotes" — your read on how it actually went, using the actual/workingSetRides numbers (e.g. "held target power well, HR drifted late" or "well under target, may need more recovery"). Leave "notes" (my original pre-workout intent) untouched on those — only "doneNotes" reflects your review. For future/upcoming workouts, keep "doneNotes" empty and revise "notes"/targets as needed per the adherence review above. Return ONLY the JSON object — no markdown fences, no commentary.`);
+  parts.push(`\nReturn a FULL REPLACEMENT plan as a single JSON object, in the exact same schema as "currentPlan" above ("schemaVersion": ${PLAN_SCHEMA_VERSION}, same "workouts" field shape). For each COMPLETED workout (one with a "workoutComparisons" entry showing actual results), write a short "notes" — your read on how it actually went, using the actual/workingSetRides numbers (e.g. "held target power well, HR drifted late" or "well under target, may need more recovery"). For future/upcoming workouts, revise "description"/targets as needed per the adherence review above and leave "notes" empty. Return ONLY the JSON object — no markdown fences, no commentary.`);
 
   return parts.join('\n');
 }

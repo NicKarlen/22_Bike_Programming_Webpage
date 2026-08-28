@@ -12,7 +12,7 @@ import { buildSeriesChart } from './seriesChart.js';
 import { closeModal } from './modal.js';
 import { navigate } from '../router.js';
 
-export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingSet, onEditDoneNotes }) {
+export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingSet, onEditNotes }) {
   const wrap = document.createElement('div');
   wrap.className = 'workout-detail';
 
@@ -55,7 +55,7 @@ export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingS
           if (activity) onEditWorkingSet?.(activity);
         });
       });
-      content.querySelector('[data-action="edit-done-notes"]')?.addEventListener('click', () => onEditDoneNotes?.(workout));
+      content.querySelector('[data-action="edit-notes"]')?.addEventListener('click', () => onEditNotes?.(workout));
     }
   }
 
@@ -76,7 +76,6 @@ function plannedTabHtml(workout) {
     ${workout.description ? `<p class="detail-desc">${escapeHtml(workout.description)}</p>` : ''}
     <div class="detail-targets">${buildTargetChips(workout.targets)}</div>
     ${extraTargetRows(workout.targets)}
-    ${workout.notes ? `<div class="detail-section"><h3>Notes</h3><p>${escapeHtml(workout.notes)}</p></div>` : ''}
     <button type="button" class="btn btn-secondary" data-action="edit">Edit planned workout</button>
   `;
 }
@@ -99,7 +98,7 @@ function doneTabHtml(workout, c, hasActual, matchEntry) {
     return `
       <p class="empty-hint">No activity matched yet.</p>
       <button type="button" class="btn btn-secondary" data-action="go-activities">Import a ride from Activities</button>
-      ${doneNotesSectionHtml(workout)}
+      ${notesSectionHtml(workout)}
     `;
   }
   const activities = matchEntry.activities || [];
@@ -110,20 +109,20 @@ function doneTabHtml(workout, c, hasActual, matchEntry) {
     ${activities.length > 1 ? buildPerRideBreakdown(activities) : ''}
     ${buildComparisonBlock(c)}
     ${buildWorkingSetSectionHtml(activities)}
-    ${doneNotesSectionHtml(workout)}
+    ${notesSectionHtml(workout)}
     ${buildRideChartsHtml(activities)}
   `;
 }
 
-// Retrospective notes (js/schema.js's `doneNotes`) — deliberately separate from the planned tab's
-// `notes` field/editor, see js/components/doneNotesForm.js. Shown regardless of match status
-// (e.g. useful for jotting down why a workout was skipped, not just how a completed one went).
-function doneNotesSectionHtml(workout) {
+// `workout.notes` lives here rather than the Planned tab — Planned already has `description` for
+// pre-workout intent, so this is free for commentary about how the workout actually went (see
+// js/schema.js). Shown regardless of match status (e.g. useful for noting why one was skipped).
+function notesSectionHtml(workout) {
   return `
     <div class="detail-section">
       <h3>Notes</h3>
-      ${workout.doneNotes ? `<p class="detail-desc">${escapeHtml(workout.doneNotes)}</p>` : '<p class="empty-hint">No notes yet.</p>'}
-      <button type="button" class="btn btn-secondary" data-action="edit-done-notes">${workout.doneNotes ? 'Edit notes' : '+ Add notes'}</button>
+      ${workout.notes ? `<p class="detail-desc">${escapeHtml(workout.notes)}</p>` : '<p class="empty-hint">No notes yet.</p>'}
+      <button type="button" class="btn btn-secondary" data-action="edit-notes">${workout.notes ? 'Edit notes' : '+ Add notes'}</button>
     </div>
   `;
 }

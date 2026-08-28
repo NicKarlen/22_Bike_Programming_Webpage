@@ -54,12 +54,9 @@ export function buildWorkoutForm({ existing, defaultDate, onSave, onDelete }) {
     </fieldset>
 
     <fieldset class="prompt-form">
-      <legend>Description &amp; notes</legend>
+      <legend>Description</legend>
       <label>Description
         <textarea name="description" rows="3">${escapeHtml(w.description)}</textarea>
-      </label>
-      <label>Notes
-        <textarea name="notes" rows="2">${escapeHtml(w.notes)}</textarea>
       </label>
     </fieldset>
 
@@ -85,7 +82,8 @@ export function buildWorkoutForm({ existing, defaultDate, onSave, onDelete }) {
       type: fd.get('type'),
       sport: fd.get('sport'),
       description: fd.get('description') || '',
-      notes: fd.get('notes') || '',
+      // `notes` isn't a field in this form — it's edited from the Done tab (js/components/notesForm.js) —
+      // so it's deliberately left out of this patch; the `...w` spread above preserves whatever it is.
       targets: {
         distanceKm: numOrNull(fd.get('distanceKm')),
         durationMin,

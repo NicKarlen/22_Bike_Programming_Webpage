@@ -4,7 +4,7 @@ import { buildCalendarGrid } from '../components/calendarGrid.js';
 import { buildWorkoutForm } from '../components/workoutForm.js';
 import { buildWorkoutDetail } from '../components/workoutDetail.js';
 import { openWorkingSetEditorModal } from '../components/workingSetEditor.js';
-import { buildDoneNotesForm } from '../components/doneNotesForm.js';
+import { buildNotesForm } from '../components/notesForm.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { startOfWeek, formatDisplayDate, todayISO } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
@@ -137,17 +137,17 @@ function openWorkoutDetailModal(workout) {
     matchEntry: match,
     onEdit: () => { closeModal(); openWorkoutEditModal(workout); },
     onEditWorkingSet: (activity) => { closeModal(); openWorkingSetEditorModal(activity); },
-    onEditDoneNotes: (w) => { closeModal(); openDoneNotesModal(w); },
+    onEditNotes: (w) => { closeModal(); openNotesModal(w); },
   });
   openModal({ title: workout.title, bodyEl: detail });
 }
 
-function openDoneNotesModal(workout) {
-  const form = buildDoneNotesForm({
+function openNotesModal(workout) {
+  const form = buildNotesForm({
     workout,
-    onSave: (doneNotes) => { updateWorkout(workout.id, { doneNotes }); closeModal(); },
+    onSave: (notes) => { updateWorkout(workout.id, { notes }); closeModal(); },
   });
-  openModal({ title: 'Done notes', bodyEl: form });
+  openModal({ title: 'Notes', bodyEl: form });
 }
 
 function openWorkoutEditModal(existing, defaultDate) {

@@ -48,13 +48,10 @@ export function createWorkout(partial = {}) {
       tss: partial.targets?.tss ?? null,
     },
     status: partial.status || 'planned',
-    // Deliberately two separate free-text fields, not one: `notes` is authored before the ride
-    // (coaching intent — shown/edited on the Planned tab, via workoutForm.js); `doneNotes` is
-    // authored after (retrospective — shown/edited on the Done tab, via doneNotesForm.js). Keeping
-    // them apart means an update-plan response's retrospective commentary never overwrites the
-    // original pre-workout guidance, and vice versa.
+    // Shown/edited on the Done tab (js/components/notesForm.js) rather than Planned — Planned
+    // already has `description` for pre-workout intent, so `notes` is free for whatever the
+    // athlete (or Claude, reviewing results) wants to say about how it actually went.
     notes: partial.notes || '',
-    doneNotes: partial.doneNotes || '',
   };
 }
 
