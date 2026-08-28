@@ -14,7 +14,7 @@ export function renderPlan(container) {
   const view = document.createElement('div');
   view.className = 'view plan-view';
 
-  const restDayCount = state.plan.workouts.filter((w) => w.type === 'rest').length;
+  const restDayCount = state.plan.workouts.filter((w) => w.type === 'rest' && !hasLoggedActivity(w)).length;
 
   view.innerHTML = `
     <div class="view-header-row">
@@ -52,8 +52,16 @@ export function renderPlan(container) {
   container.appendChild(view);
 }
 
+// A rest-typed workout is only worth hiding behind the toggle when nothing was actually logged
+// against it — a ride done on a planned rest day is a real result the athlete will want to see,
+// not noise to filter out.
+function hasLoggedActivity(workout) {
+  return (state.matches.matchesByWorkoutId.get(workout.id)?.activities.length || 0) > 0;
+}
+
 function visibleWorkouts() {
-  return state.ui.showRestDays ? state.plan.workouts : state.plan.workouts.filter((w) => w.type !== 'rest');
+  if (state.ui.showRestDays) return state.plan.workouts;
+  return state.plan.workouts.filter((w) => w.type !== 'rest' || hasLoggedActivity(w));
 }
 
 function buildListView() {
