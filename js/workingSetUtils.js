@@ -35,20 +35,40 @@ export function computeSegmentStats(series, { startSec, endSec }) {
 }
 
 /**
- * Per-ride breakdown of working-set segment stats, for activities that have any. Used by
- * js/components/workingSetSummary.js — one entry per contributing activity, each carrying its
- * own segments' computed stats (no cross-ride combined total, by design).
- * @param {object[]} activities
- * @returns {{activity:object, segments:{segment:object, stats:object|null}[]}[]}
+ * Combined stats across every given segment — e.g. for "5x5min" intervals, the average power/HR
+ * held across all five work bouts together, not just each one individually. Duration is the plain
+ * sum of each segment's own length (what a user means by "25 minutes of work"); the averages pool
+ * every sample from every segment (deduplicated by bucket, so an accidental overlap between two
+ * segments doesn't double-count that overlap's samples) rather than averaging the segments'
+ * already-rounded individual averages, which would compound rounding error.
+ * @param {object} series
+ * @param {{startSec:number, endSec:number}[]} segments
+ * @returns {{segmentCount:number, durationSec:number, avgPowerW:?number, avgHR:?number, avgSpeedKmh:?number}|null}
  */
-export function buildWorkingSetBreakdown(activities) {
-  return (activities || [])
-    .filter((a) => a.workingSet?.segments?.length)
-    .map((a) => ({
-      activity: a,
-      segments: a.workingSet.segments.map((segment) => ({
-        segment,
-        stats: computeSegmentStats(a.series, segment),
-      })),
-    }));
+export function computeAggregateStats(series, segments) {
+  if (!series?.tSec?.length || !segments?.length) return null;
+
+  const idxSet = new Set();
+  segments.forEach(({ startSec, endSec }) => {
+    series.tSec.forEach((t, i) => {
+      if (t >= startSec && t <= endSec) idxSet.add(i);
+    });
+  });
+  if (!idxSet.size) return null;
+  const idxs = [...idxSet];
+
+  const mean = (arr, decimals = 0) => {
+    const vals = idxs.map((i) => arr?.[i]).filter((v) => v != null);
+    if (!vals.length) return null;
+    const factor = 10 ** decimals;
+    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * factor) / factor;
+  };
+
+  return {
+    segmentCount: segments.length,
+    durationSec: Math.round(segments.reduce((a, s) => a + Math.max(0, s.endSec - s.startSec), 0)),
+    avgPowerW: mean(series.powerW),
+    avgHR: mean(series.hrBpm),
+    avgSpeedKmh: mean(series.speedKmh, 1),
+  };
 }

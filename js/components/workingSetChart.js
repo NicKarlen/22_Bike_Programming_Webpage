@@ -19,14 +19,32 @@
 // reads it back out via `getSegments()`.
 
 import { escapeHtml } from '../domUtils.js';
+import { formatClock } from '../dateUtils.js';
 
 const MIN_WINDOW_SPAN_SEC = 15;
 const MIN_SEGMENT_GAP_SEC = 5;
 const DETAIL_W = 600, DETAIL_H = 160, DETAIL_PAD = DETAIL_H * 0.08;
 const OVERVIEW_W = 600, OVERVIEW_H = 60;
 
+// The three lines the detail pane can show — also drives the clickable legend below, which
+// toggles each one's `visible` entry on/off. The overview strip always shows power only, as
+// fixed ride-shape context, so it isn't affected by these toggles.
+const METRICS = [
+  { key: 'powerW', cls: 'ws-line-power', swatchCls: 'ws-swatch-power', label: 'Power' },
+  { key: 'speedKmh', cls: 'ws-line-speed', swatchCls: 'ws-swatch-speed', label: 'Speed' },
+  { key: 'hrBpm', cls: 'ws-line-hr', swatchCls: 'ws-swatch-hr', label: 'Heart rate' },
+];
+
 function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
+}
+
+function formatMetricValue(key, v) {
+  if (v == null) return null;
+  if (key === 'powerW') return `${Math.round(v)}W`;
+  if (key === 'speedKmh') return `${v.toFixed(1)}km/h`;
+  if (key === 'hrBpm') return `${Math.round(v)}bpm`;
+  return String(v);
 }
 
 /**
@@ -44,18 +62,24 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
   let segs = (segments || []).map((s) => ({ ...s }));
   let zoomStart = tMin;
   let zoomEnd = tMax;
+  // Which of the three detail-pane lines are currently shown — toggled by clicking the matching
+  // legend button (all on by default). Purely a display filter; never affects stored segment data.
+  const visible = { powerW: true, speedKmh: true, hrBpm: true };
 
   const root = document.createElement('div');
   root.className = 'ws-chart';
   root.innerHTML = `
     <div class="ws-legend">
-      <span class="ws-legend-item"><span class="ws-legend-swatch ws-swatch-power"></span>Power</span>
-      <span class="ws-legend-item"><span class="ws-legend-swatch ws-swatch-speed"></span>Speed</span>
-      <span class="ws-legend-item"><span class="ws-legend-swatch ws-swatch-hr"></span>Heart rate</span>
+      ${METRICS.map(({ key, swatchCls, label }) => `
+        <button type="button" class="ws-legend-item" data-metric="${key}" aria-pressed="true">
+          <span class="ws-legend-swatch ${swatchCls}"></span>${label}
+        </button>
+      `).join('')}
     </div>
     <div class="ws-detail">
       <svg class="ws-detail-svg" viewBox="0 0 ${DETAIL_W} ${DETAIL_H}" preserveAspectRatio="none" role="img" aria-label="Ride detail chart, drag segment handles to mark the working set"></svg>
       <div class="ws-detail-overlay"></div>
+      <div class="ws-value-tooltip" hidden></div>
     </div>
     <div class="ws-overview">
       <svg class="ws-overview-svg" viewBox="0 0 ${OVERVIEW_W} ${OVERVIEW_H}" preserveAspectRatio="none" role="img" aria-label="Full ride overview, drag to zoom the detail chart above"></svg>
@@ -66,12 +90,60 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
     </div>
   `;
 
+  const legendEl = root.querySelector('.ws-legend');
   const detailEl = root.querySelector('.ws-detail');
   const detailSvg = root.querySelector('.ws-detail-svg');
   const detailOverlay = root.querySelector('.ws-detail-overlay');
+  const tooltipEl = root.querySelector('.ws-value-tooltip');
   const overviewEl = root.querySelector('.ws-overview');
   const overviewSvg = root.querySelector('.ws-overview-svg');
   const windowEl = root.querySelector('.ws-window');
+
+  // Index of the series sample closest to time `t` (tSec is sorted ascending) — used to read off
+  // the "local" values shown in the drag tooltip below, which are point samples, not averages.
+  function nearestIndex(t) {
+    if (!tSec.length) return null;
+    let lo = 0, hi = tSec.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (tSec[mid] < t) lo = mid + 1; else hi = mid;
+    }
+    if (lo > 0 && Math.abs(tSec[lo - 1] - t) < Math.abs(tSec[lo] - t)) return lo - 1;
+    return lo;
+  }
+
+  // Small value readout that follows a segment handle while it's being dragged — shows the clock
+  // position plus each currently-visible metric's value AT that exact point, so the user can see
+  // precisely what they're aligning the handle to (e.g. "12:34 · 312W · 34.2km/h · 154bpm").
+  function showValueTooltip(t) {
+    const idx = nearestIndex(t);
+    if (idx == null) { tooltipEl.hidden = true; return; }
+    const parts = METRICS
+      .filter(({ key }) => visible[key])
+      .map(({ key }) => formatMetricValue(key, series[key]?.[idx]))
+      .filter(Boolean);
+    tooltipEl.hidden = false;
+    tooltipEl.textContent = [formatClock(t), ...parts].join(' · ');
+    const span = Math.max(zoomEnd - zoomStart, 1);
+    const frac = clamp((t - zoomStart) / span, 0.06, 0.94); // nudge in from the edges so the bubble stays fully visible
+    tooltipEl.style.left = `${frac * 100}%`;
+  }
+
+  function hideValueTooltip() {
+    tooltipEl.hidden = true;
+  }
+
+  // Clicking a legend item shows/hides that metric's line in the detail pane above (the overview
+  // strip is untouched — it's fixed power-only ride-shape context, not part of what's toggled).
+  legendEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ws-legend-item');
+    if (!btn) return;
+    const key = btn.dataset.metric;
+    visible[key] = !visible[key];
+    btn.classList.toggle('inactive', !visible[key]);
+    btn.setAttribute('aria-pressed', String(visible[key]));
+    renderDetail();
+  });
 
   function notifyChange() {
     onSegmentsChange?.(segs.map((s) => ({ ...s })));
@@ -118,11 +190,10 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
     const span = Math.max(zoomEnd - zoomStart, 1);
     const xOf = (t) => ((t - zoomStart) / span) * DETAIL_W;
 
-    detailSvg.innerHTML = [
-      buildLine('powerW', 'ws-line-power', visIdx, xOf),
-      buildLine('speedKmh', 'ws-line-speed', visIdx, xOf),
-      buildLine('hrBpm', 'ws-line-hr', visIdx, xOf),
-    ].join('');
+    detailSvg.innerHTML = METRICS
+      .filter(({ key }) => visible[key])
+      .map(({ key, cls }) => buildLine(key, cls, visIdx, xOf))
+      .join('');
 
     detailOverlay.innerHTML = segs.map((seg, i) => {
       // Cycle a small fixed palette across segments purely so adjacent ones are visually
@@ -217,6 +288,8 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
     const rect = detailEl.getBoundingClientRect();
     let raf = null;
 
+    showValueTooltip(edge === 'start' ? seg.startSec : seg.endSec);
+
     function onMove(ev) {
       const frac = clamp((ev.clientX - rect.left) / rect.width, 0, 1);
       const t = zoomStart + frac * (zoomEnd - zoomStart);
@@ -227,6 +300,7 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
         if (edge === 'start') seg.startSec = clamp(tc, tMin, seg.endSec - MIN_SEGMENT_GAP_SEC);
         else seg.endSec = clamp(tc, seg.startSec + MIN_SEGMENT_GAP_SEC, tMax);
         repositionSegment(seg.id);
+        showValueTooltip(edge === 'start' ? seg.startSec : seg.endSec);
         notifyChange();
       });
     }
@@ -235,6 +309,7 @@ export function buildWorkingSetChart({ series, segments, onSegmentsChange }) {
       handle.removeEventListener('pointermove', onMove);
       handle.removeEventListener('pointerup', onUp);
       handle.removeEventListener('pointercancel', onUp);
+      hideValueTooltip();
     }
     handle.addEventListener('pointermove', onMove);
     handle.addEventListener('pointerup', onUp);

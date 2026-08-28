@@ -297,8 +297,17 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
 /* Working-set editor (js/components/workingSetChart.js, workingSetEditor.js) — manual segment
    selection over a ride's power/speed/HR chart. Draggable elements use color-mix() for translucent
    fills so label text painted on top stays fully opaque (plain CSS opacity would dim it too). */
-.ws-legend { display: flex; gap: 0.8rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-muted); margin: 0.4rem 0; }
-.ws-legend-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+.ws-legend { display: flex; gap: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-muted); margin: 0.4rem 0; }
+/* Legend items are buttons that toggle their line in the detail chart above — reset the button
+   chrome back to plain inline text, then style the toggled-off state via .inactive. */
+.ws-legend-item {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: var(--color-surface-alt); border: 1px solid transparent; border-radius: 999px;
+  padding: 0.2rem 0.6rem; font: inherit; font-size: 0.75rem; color: var(--color-text);
+  cursor: pointer;
+}
+.ws-legend-item.inactive { color: var(--color-text-muted); background: none; border-color: var(--color-border); }
+.ws-legend-item.inactive .ws-legend-swatch { background: var(--color-text-muted); opacity: 0.5; }
 .ws-legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 .ws-swatch-power { background: var(--color-accent); }
 .ws-swatch-speed { background: var(--color-type-tempo); }
@@ -315,6 +324,15 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
 }
 .ws-detail-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .ws-detail-overlay { position: absolute; inset: 0; pointer-events: none; }
+/* Follows a handle while it's being dragged, showing the exact point sample under it — a stable
+   element (unlike the overlay's contents) so it survives repositionSegment()'s per-frame updates. */
+.ws-value-tooltip {
+  position: absolute; top: 6px; transform: translateX(-50%);
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem; font-size: 0.7rem; font-variant-numeric: tabular-nums;
+  white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-card); z-index: 2;
+}
 .ws-line-power { fill: none; stroke: var(--color-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .ws-line-speed { fill: none; stroke: var(--color-type-tempo); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0.85; }
 .ws-line-hr { fill: none; stroke: var(--status-missed-border); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0.85; }
@@ -352,12 +370,21 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
 .btn-icon:hover { color: var(--color-danger); }
 .ws-segment-range { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
 
-/* Read-only working-set summary (workout detail Done tab, js/components/workingSetSummary.js) */
+/* Read-only working-set summary (workout detail Done tab, js/components/workingSetSummary.js) —
+   also reused by the editor (js/components/workingSetEditor.js) for its own live "all segments"
+   row, so both places share one visual language for the combined-average row. */
 .ws-summary-ride-name { font-weight: 600; font-size: 0.85rem; margin: 0.6rem 0 0.3rem; }
 .ws-summary-ride-name:first-child { margin-top: 0; }
 .ws-summary-rows { display: flex; flex-direction: column; gap: 0.4rem; }
 .ws-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; font-size: 0.85rem; }
 .ws-summary-label { color: var(--color-text-muted); flex-shrink: 0; }
+/* Combined average across every segment — set apart from the individual segment rows above it. */
+.ws-summary-row-aggregate { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border); }
+.ws-summary-ride { margin-bottom: 0.5rem; }
+.ws-summary-ride:last-child { margin-bottom: 0; }
+.ws-summary-empty { margin: 0 0 0.5rem; padding: 0; }
+.ws-summary-edit-btn { margin-top: 0.5rem; }
+.ws-summary-row-aggregate .ws-summary-label { font-weight: 600; color: var(--color-text); }
 
 /* Gives the working-set editor modal more room than the default modal width, at the breakpoint
    where modals stop being a full-width mobile bottom sheet; mobile is unaffected (already 100%). */

@@ -12,7 +12,7 @@ import { buildSeriesChart } from './seriesChart.js';
 import { closeModal } from './modal.js';
 import { navigate } from '../router.js';
 
-export function buildWorkoutDetail({ workout, matchEntry, onEdit }) {
+export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingSet }) {
   const wrap = document.createElement('div');
   wrap.className = 'workout-detail';
 
@@ -48,6 +48,12 @@ export function buildWorkoutDetail({ workout, matchEntry, onEdit }) {
       content.querySelector('[data-action="go-activities"]')?.addEventListener('click', () => {
         closeModal();
         navigate('/activities');
+      });
+      content.querySelectorAll('[data-action="edit-working-set"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const activity = (matchEntry?.activities || []).find((a) => a.id === btn.dataset.activityId);
+          if (activity) onEditWorkingSet?.(activity);
+        });
       });
     }
   }

@@ -6,4 +6,4 @@
 // what the user reads to sanity-check "am I on the latest build", CACHE_NAME is what actually
 // busts the service worker's cache — but should move together so the number on screen is
 // meaningful.
-export const APP_VERSION = '0.6';
+export const APP_VERSION = '0.7';

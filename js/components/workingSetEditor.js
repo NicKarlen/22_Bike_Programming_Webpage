@@ -1,6 +1,9 @@
 // Modal body for placing/editing a ride's working-set segments (see js/workingSetUtils.js and
 // js/components/workingSetChart.js for the underlying data/chart). Opened both right after
-// import and later by clicking an existing ride (js/views/activities.js).
+// import, later by clicking an existing ride (js/views/activities.js), and from the "Edit working
+// set" button on a matched workout's Done tab (js/components/workoutDetail.js via js/views/plan.js)
+// — all three go through `openWorkingSetEditorModal` below so the modal-wiring/save/close plumbing
+// only lives in one place.
 //
 // The chart component (`js/components/workingSetChart.js`) is the single source of truth for
 // segment state once built — this editor never keeps its own parallel segments array, it always
@@ -9,11 +12,32 @@
 import { uid } from '../idUtils.js';
 import { escapeAttr } from '../domUtils.js';
 import { formatClock } from '../dateUtils.js';
-import { computeSegmentStats } from '../workingSetUtils.js';
+import { computeSegmentStats, computeAggregateStats } from '../workingSetUtils.js';
 import { buildWorkingSetChart } from './workingSetChart.js';
+import { openModal, closeModal } from './modal.js';
+import { setActivityWorkingSet } from '../state.js';
 
 const DEFAULT_NEW_SEGMENT_SEC = 60;
 const MIN_NEW_SEGMENT_SEC = 10; // keep new segments comfortably above the chart's own drag-gap floor
+
+/**
+ * Opens the working-set editor for one activity in a modal, wiring Save through to state.js —
+ * the single shared entry point every caller (import flow, Activities log, workout detail) uses
+ * rather than each re-implementing the same build-editor/save/close sequence.
+ * @param {object} activity
+ * @param {{onClose?: () => void}} [opts]  passed straight through to openModal — see its `onClose`
+ *   doc (js/components/modal.js) for why this is the right place for "advance a review queue" etc.
+ */
+export function openWorkingSetEditorModal(activity, { onClose } = {}) {
+  const editor = buildWorkingSetEditor({
+    activity,
+    onSave: (segments) => {
+      setActivityWorkingSet(activity.id, segments);
+      closeModal();
+    },
+  });
+  openModal({ title: `Working set — ${activity.activityName || 'Ride'}`, bodyEl: editor, className: 'modal-wide', onClose });
+}
 
 /**
  * @param {object} activity
@@ -38,6 +62,7 @@ export function buildWorkingSetEditor({ activity, onSave }) {
     </div>
     <p class="empty-hint ws-empty-hint">No segments yet — add one, or use "Use full ride" for a race.</p>
     <div class="ws-segment-list"></div>
+    <div class="ws-summary-row ws-summary-row-aggregate ws-aggregate-row" hidden></div>
     <div class="form-actions">
       <span></span>
       <button type="button" class="btn btn-primary" data-action="save">Save</button>
@@ -53,6 +78,7 @@ export function buildWorkingSetEditor({ activity, onSave }) {
 
   const listEl = wrap.querySelector('.ws-segment-list');
   const emptyHint = wrap.querySelector('.ws-empty-hint');
+  const aggregateEl = wrap.querySelector('.ws-aggregate-row');
 
   function statPillsHtml(stats) {
     if (!stats) return '<span class="stat-pill">No data in range</span>';
@@ -62,6 +88,19 @@ export function buildWorkingSetEditor({ activity, onSave }) {
       stats.avgHR != null ? `<span class="stat-pill">HR ${stats.avgHR}</span>` : '',
       stats.avgSpeedKmh != null ? `<span class="stat-pill">${stats.avgSpeedKmh} km/h</span>` : '',
     ].filter(Boolean).join('');
+  }
+
+  // "All N segments" combined average (js/workingSetUtils.js's computeAggregateStats) — e.g. the
+  // pooled average power across all five bouts of a 5x5min session, not just each one on its own.
+  // Only worth showing once there's more than one segment to combine.
+  function renderAggregateRow() {
+    const segments = chart.getSegments();
+    if (segments.length < 2) { aggregateEl.hidden = true; return; }
+    aggregateEl.hidden = false;
+    aggregateEl.innerHTML = `
+      <span class="ws-summary-label">All ${segments.length} segments</span>
+      <span class="stat-pills">${statPillsHtml(computeAggregateStats(series, segments))}</span>
+    `;
   }
 
   function renderList() {
@@ -87,6 +126,7 @@ export function buildWorkingSetEditor({ activity, onSave }) {
         renderList();
       });
     });
+    renderAggregateRow();
   }
 
   // Lighter than renderList() — called on every drag frame (via the chart's onSegmentsChange),
@@ -99,6 +139,7 @@ export function buildWorkingSetEditor({ activity, onSave }) {
       if (rangeEl) rangeEl.textContent = `${formatClock(seg.startSec)}–${formatClock(seg.endSec)}`;
       if (pillsEl) pillsEl.innerHTML = statPillsHtml(computeSegmentStats(series, seg));
     });
+    renderAggregateRow();
   }
 
   renderList();

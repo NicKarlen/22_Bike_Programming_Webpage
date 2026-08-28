@@ -3,6 +3,7 @@ import { buildWorkoutCard } from '../components/workoutCard.js';
 import { buildCalendarGrid } from '../components/calendarGrid.js';
 import { buildWorkoutForm } from '../components/workoutForm.js';
 import { buildWorkoutDetail } from '../components/workoutDetail.js';
+import { openWorkingSetEditorModal } from '../components/workingSetEditor.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { startOfWeek, formatDisplayDate, todayISO } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
@@ -134,6 +135,7 @@ function openWorkoutDetailModal(workout) {
     workout,
     matchEntry: match,
     onEdit: () => { closeModal(); openWorkoutEditModal(workout); },
+    onEditWorkingSet: (activity) => { closeModal(); openWorkingSetEditorModal(activity); },
   });
   openModal({ title: workout.title, bodyEl: detail });
 }

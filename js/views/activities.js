@@ -1,10 +1,9 @@
-import { state, setActivities, setActivityWorkingSet } from '../state.js';
+import { state, setActivities } from '../state.js';
 import { buildFileDropZone } from '../components/fileDropZone.js';
 import { importFiles } from '../activityImport.js';
 import { formatDisplayDate, formatDistance, formatElevation, formatDuration } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
-import { openModal, closeModal } from '../components/modal.js';
-import { buildWorkingSetEditor } from '../components/workingSetEditor.js';
+import { openWorkingSetEditorModal } from '../components/workingSetEditor.js';
 
 export function renderActivities(container) {
   const view = document.createElement('div');
@@ -63,23 +62,12 @@ async function handleFiles(files, container) {
 
   if (result.newOrUpdatedIds.length === 1) {
     const activity = state.activities.find((a) => a.id === result.newOrUpdatedIds[0]);
-    if (activity) openWorkingSetEditorFor(activity);
+    if (activity) openWorkingSetEditorModal(activity);
   } else if (result.newOrUpdatedIds.length > 1) {
     summaryEl.querySelector('[data-action="review-working-sets"]')?.addEventListener('click', () => {
       startWorkingSetReviewQueue([...result.newOrUpdatedIds]);
     });
   }
-}
-
-function openWorkingSetEditorFor(activity) {
-  const editor = buildWorkingSetEditor({
-    activity,
-    onSave: (segments) => {
-      setActivityWorkingSet(activity.id, segments);
-      closeModal();
-    },
-  });
-  openModal({ title: `Working set — ${activity.activityName || 'Ride'}`, bodyEl: editor, className: 'modal-wide' });
 }
 
 // Opens one working-set editor per id, advancing to the next as soon as the current one closes —
@@ -91,20 +79,7 @@ function startWorkingSetReviewQueue(ids) {
   if (!id) return;
   const activity = state.activities.find((a) => a.id === id);
   if (!activity) { startWorkingSetReviewQueue(rest); return; }
-
-  const editor = buildWorkingSetEditor({
-    activity,
-    onSave: (segments) => {
-      setActivityWorkingSet(activity.id, segments);
-      closeModal();
-    },
-  });
-  openModal({
-    title: `Working set — ${activity.activityName || 'Ride'}`,
-    bodyEl: editor,
-    className: 'modal-wide',
-    onClose: () => startWorkingSetReviewQueue(rest),
-  });
+  openWorkingSetEditorModal(activity, { onClose: () => startWorkingSetReviewQueue(rest) });
 }
 
 function renderLog(view) {
@@ -140,7 +115,7 @@ function renderLog(view) {
     `;
     // Opens the same editor used right after import, pre-populated with any existing segments —
     // this is the "adjust it later" entry point.
-    row.addEventListener('click', () => openWorkingSetEditorFor(a));
+    row.addEventListener('click', () => openWorkingSetEditorModal(a));
     table.appendChild(row);
   });
   logEl.appendChild(table);
