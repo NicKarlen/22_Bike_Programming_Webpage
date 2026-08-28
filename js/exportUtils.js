@@ -3,6 +3,7 @@
 
 import { PLAN_SCHEMA_VERSION } from './schema.js';
 import { startOfWeek } from './dateUtils.js';
+import { computeSegmentStats, computeAggregateStats } from './workingSetUtils.js';
 
 export function buildExportForClaude(plan, activities, matches) {
   const workoutComparisons = plan.workouts.map((w) => {
@@ -23,6 +24,13 @@ export function buildExportForClaude(plan, activities, matches) {
       actualAvgPowerW: c.actualAvgPowerW ?? null,
       completionStatus: entry?.completionStatus || 'planned',
       matchedActivityIds: (entry?.activities || []).map((a) => a.id),
+      // actualAvgPower/HR above are whole-ride (warmup/cooldown/rest included). Where the athlete
+      // manually marked a "working set" (js/components/workingSetEditor.js — a race's gun-to-finish
+      // window, or a structured workout's actual intervals), this gives the more meaningful numbers:
+      // per-segment averages plus, when there's more than one segment on a ride, that ride's own
+      // pooled average across all of them (js/workingSetUtils.js's computeAggregateStats — no
+      // cross-*ride* total, matching how the app itself displays this).
+      workingSetRides: buildWorkingSetRidesExport(entry?.activities || []),
     };
   });
 
@@ -43,6 +51,34 @@ export function buildExportForClaude(plan, activities, matches) {
     workoutComparisons,
     unmatchedActivities,
   };
+}
+
+function buildWorkingSetRidesExport(matchedActivities) {
+  const rides = matchedActivities
+    .filter((a) => a.workingSet?.segments?.length)
+    .map((a) => {
+      const segments = a.workingSet.segments.map((seg) => {
+        const stats = computeSegmentStats(a.series, seg);
+        return {
+          label: seg.label || null,
+          durationMin: stats ? round1(stats.durationSec / 60) : null,
+          avgPowerW: stats?.avgPowerW ?? null,
+          avgHR: stats?.avgHR ?? null,
+          avgSpeedKmh: stats?.avgSpeedKmh ?? null,
+        };
+      });
+      const aggregate = a.workingSet.segments.length > 1 ? computeAggregateStats(a.series, a.workingSet.segments) : null;
+      return {
+        activityId: a.id,
+        activityName: a.activityName || null,
+        segments,
+        allSegmentsDurationMin: aggregate ? round1(aggregate.durationSec / 60) : null,
+        allSegmentsAvgPowerW: aggregate?.avgPowerW ?? null,
+        allSegmentsAvgHR: aggregate?.avgHR ?? null,
+        allSegmentsAvgSpeedKmh: aggregate?.avgSpeedKmh ?? null,
+      };
+    });
+  return rides.length ? rides : null;
 }
 
 function buildActivitySummary(activities) {

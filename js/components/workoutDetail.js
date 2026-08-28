@@ -12,7 +12,7 @@ import { buildSeriesChart } from './seriesChart.js';
 import { closeModal } from './modal.js';
 import { navigate } from '../router.js';
 
-export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingSet }) {
+export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingSet, onEditDoneNotes }) {
   const wrap = document.createElement('div');
   wrap.className = 'workout-detail';
 
@@ -40,7 +40,7 @@ export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingS
 
   function renderTab() {
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === activeTab));
-    content.innerHTML = activeTab === 'planned' ? plannedTabHtml(workout) : doneTabHtml(c, hasActual, matchEntry);
+    content.innerHTML = activeTab === 'planned' ? plannedTabHtml(workout) : doneTabHtml(workout, c, hasActual, matchEntry);
 
     if (activeTab === 'planned') {
       content.querySelector('[data-action="edit"]')?.addEventListener('click', onEdit);
@@ -55,6 +55,7 @@ export function buildWorkoutDetail({ workout, matchEntry, onEdit, onEditWorkingS
           if (activity) onEditWorkingSet?.(activity);
         });
       });
+      content.querySelector('[data-action="edit-done-notes"]')?.addEventListener('click', () => onEditDoneNotes?.(workout));
     }
   }
 
@@ -93,11 +94,12 @@ function row(label, value) {
   return `<div class="compare-row"><div class="compare-row-top"><span class="compare-label">${label}</span><span class="compare-values"><strong>${value}</strong></span></div></div>`;
 }
 
-function doneTabHtml(c, hasActual, matchEntry) {
+function doneTabHtml(workout, c, hasActual, matchEntry) {
   if (!hasActual) {
     return `
       <p class="empty-hint">No activity matched yet.</p>
       <button type="button" class="btn btn-secondary" data-action="go-activities">Import a ride from Activities</button>
+      ${doneNotesSectionHtml(workout)}
     `;
   }
   const activities = matchEntry.activities || [];
@@ -108,7 +110,21 @@ function doneTabHtml(c, hasActual, matchEntry) {
     ${activities.length > 1 ? buildPerRideBreakdown(activities) : ''}
     ${buildComparisonBlock(c)}
     ${buildWorkingSetSectionHtml(activities)}
+    ${doneNotesSectionHtml(workout)}
     ${buildRideChartsHtml(activities)}
+  `;
+}
+
+// Retrospective notes (js/schema.js's `doneNotes`) — deliberately separate from the planned tab's
+// `notes` field/editor, see js/components/doneNotesForm.js. Shown regardless of match status
+// (e.g. useful for jotting down why a workout was skipped, not just how a completed one went).
+function doneNotesSectionHtml(workout) {
+  return `
+    <div class="detail-section">
+      <h3>Notes</h3>
+      ${workout.doneNotes ? `<p class="detail-desc">${escapeHtml(workout.doneNotes)}</p>` : '<p class="empty-hint">No notes yet.</p>'}
+      <button type="button" class="btn btn-secondary" data-action="edit-done-notes">${workout.doneNotes ? 'Edit notes' : '+ Add notes'}</button>
+    </div>
   `;
 }
 
