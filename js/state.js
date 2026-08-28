@@ -65,6 +65,19 @@ export function setActivities(newActivities) {
   persistAndRender();
 }
 
+/**
+ * Replaces one activity's working-set segments (see js/workingSetUtils.js). `segments` is the
+ * final `{id,label,startSec,endSec}[]` array from the editor's Save action — never called
+ * mid-drag, only once per confirmed edit, same as every other setter here.
+ */
+export function setActivityWorkingSet(activityId, segments) {
+  state.activities = state.activities.map((a) =>
+    a.id === activityId ? { ...a, workingSet: segments?.length ? { segments } : undefined } : a
+  );
+  save(STORAGE_KEYS.ACTIVITIES, state.activities);
+  persistAndRender();
+}
+
 export function setManualMatch(activityId, workoutId) {
   state.manualMatches = { ...state.manualMatches, [activityId]: workoutId };
   save(STORAGE_KEYS.MANUAL_MATCHES, state.manualMatches);

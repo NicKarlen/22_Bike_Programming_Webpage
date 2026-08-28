@@ -1,8 +1,10 @@
-import { state, setActivities } from '../state.js';
+import { state, setActivities, setActivityWorkingSet } from '../state.js';
 import { buildFileDropZone } from '../components/fileDropZone.js';
 import { importFiles } from '../activityImport.js';
 import { formatDisplayDate, formatDistance, formatElevation, formatDuration } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
+import { openModal, closeModal } from '../components/modal.js';
+import { buildWorkingSetEditor } from '../components/workingSetEditor.js';
 
 export function renderActivities(container) {
   const view = document.createElement('div');
@@ -48,9 +50,61 @@ async function handleFiles(files, container) {
   if (result.failed.length) {
     lines.push(`<ul class="import-errors">${result.failed.map((f) => `<li>${escapeHtml(f.file)}: ${escapeHtml(f.reason)}</li>`).join('')}</ul>`);
   }
+  // Importing exactly one ride pops the working-set editor open right away (the normal "just
+  // finished riding" flow, per the user's request that selection happen at import time). A bigger
+  // batch — e.g. backfilling old rides — instead gets a banner so the user isn't marched through
+  // a stack of modals; they can review on their own time via this button or later from the log.
+  if (result.newOrUpdatedIds.length > 1) {
+    lines.push(`<p><button type="button" class="btn btn-secondary" data-action="review-working-sets">Review working sets (${result.newOrUpdatedIds.length})</button></p>`);
+  }
   summaryEl.innerHTML = lines.join('');
   // Note: renderLog already ran fresh inside the setActivities-triggered re-render above (it's
   // called at the bottom of renderActivities using the updated state), so no need to call it again.
+
+  if (result.newOrUpdatedIds.length === 1) {
+    const activity = state.activities.find((a) => a.id === result.newOrUpdatedIds[0]);
+    if (activity) openWorkingSetEditorFor(activity);
+  } else if (result.newOrUpdatedIds.length > 1) {
+    summaryEl.querySelector('[data-action="review-working-sets"]')?.addEventListener('click', () => {
+      startWorkingSetReviewQueue([...result.newOrUpdatedIds]);
+    });
+  }
+}
+
+function openWorkingSetEditorFor(activity) {
+  const editor = buildWorkingSetEditor({
+    activity,
+    onSave: (segments) => {
+      setActivityWorkingSet(activity.id, segments);
+      closeModal();
+    },
+  });
+  openModal({ title: `Working set — ${activity.activityName || 'Ride'}`, bodyEl: editor, className: 'modal-wide' });
+}
+
+// Opens one working-set editor per id, advancing to the next as soon as the current one closes —
+// whether that close came from Save or from the user just dismissing it (X / click-outside).
+// `onClose` (see js/components/modal.js) fires exactly once per close regardless of which, so
+// there's a single place driving the queue forward, not two that could double-advance it.
+function startWorkingSetReviewQueue(ids) {
+  const [id, ...rest] = ids;
+  if (!id) return;
+  const activity = state.activities.find((a) => a.id === id);
+  if (!activity) { startWorkingSetReviewQueue(rest); return; }
+
+  const editor = buildWorkingSetEditor({
+    activity,
+    onSave: (segments) => {
+      setActivityWorkingSet(activity.id, segments);
+      closeModal();
+    },
+  });
+  openModal({
+    title: `Working set — ${activity.activityName || 'Ride'}`,
+    bodyEl: editor,
+    className: 'modal-wide',
+    onClose: () => startWorkingSetReviewQueue(rest),
+  });
 }
 
 function renderLog(view) {
@@ -64,8 +118,11 @@ function renderLog(view) {
   const table = document.createElement('div');
   table.className = 'activity-table';
   state.activities.forEach((a) => {
+    const segCount = a.workingSet?.segments?.length || 0;
     const row = document.createElement('div');
     row.className = 'activity-row';
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
     row.innerHTML = `
       <div class="activity-row-main">
         <span class="activity-date">${formatDisplayDate(a.date)}</span>
@@ -78,8 +135,12 @@ function renderLog(view) {
         <span>${formatDuration(a.durationSec)}</span>
         ${a.avgHR != null ? `<span>HR ${a.avgHR}</span>` : ''}
         ${a.avgPowerW != null ? `<span>${a.avgPowerW}W</span>` : ''}
+        ${segCount ? `<span>${segCount} working set${segCount > 1 ? 's' : ''}</span>` : ''}
       </div>
     `;
+    // Opens the same editor used right after import, pre-populated with any existing segments —
+    // this is the "adjust it later" entry point.
+    row.addEventListener('click', () => openWorkingSetEditorFor(a));
     table.appendChild(row);
   });
   logEl.appendChild(table);

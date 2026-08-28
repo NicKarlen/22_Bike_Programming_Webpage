@@ -7,6 +7,7 @@ import { formatDisplayDate, formatDuration } from '../dateUtils.js';
 import { escapeHtml } from '../domUtils.js';
 import { statusLabel, statusGlyph } from '../statusMeta.js';
 import { buildTargetChips, buildComparisonBlock } from './comparisonBlock.js';
+import { buildWorkingSetSectionHtml } from './workingSetSummary.js';
 import { buildSeriesChart } from './seriesChart.js';
 import { closeModal } from './modal.js';
 import { navigate } from '../router.js';
@@ -100,6 +101,7 @@ function doneTabHtml(c, hasActual, matchEntry) {
     ${activityNames ? `<p class="detail-matched-from">From: ${activityNames}</p>` : ''}
     ${activities.length > 1 ? buildPerRideBreakdown(activities) : ''}
     ${buildComparisonBlock(c)}
+    ${buildWorkingSetSectionHtml(activities)}
     ${buildRideChartsHtml(activities)}
   `;
 }

@@ -74,6 +74,19 @@ export function formatDurationMin(totalMinutes) {
   return formatDuration(totalMinutes * 60);
 }
 
+/** mm:ss (or h:mm:ss past an hour) — finer-grained than formatDuration, for working-set segment
+ *  bounds/durations where "5min" is too coarse to place/read a handle precisely. */
+export function formatClock(totalSeconds) {
+  if (totalSeconds == null || isNaN(totalSeconds)) return '–';
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 export function formatDistance(meters) {
   if (meters == null || isNaN(meters)) return '–';
   return `${(meters / 1000).toFixed(1)} km`;

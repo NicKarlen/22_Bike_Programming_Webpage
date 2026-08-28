@@ -2,13 +2,19 @@
 // stored footprint stays bounded regardless of how long it was (a 5-hour ride still caps out at
 // `maxPoints`). Used by activityImport.js right after parsing, before the raw per-point arrays
 // (which can be thousands of entries for a long ride) go out of scope and get discarded.
+//
+// maxPoints defaults to ~1400 rather than a coarser value: this series is also what the
+// working-set editor (js/components/workingSetChart.js) drags segment handles and computes
+// per-segment averages against (js/workingSetUtils.js), so it needs finer buckets than the old
+// 180-point cap gave (a bucket every ~14s on a 40min ride) to place/average intervals accurately.
+// At 1400 points a ride's series still only costs ~20-40KB as JSON.
 
 /**
- * @param {{tSec:number, hr:?number, power:?number, ele:?number}[]} points  raw per-trackpoint samples
+ * @param {{tSec:number, hr:?number, power:?number, ele:?number, speed:?number}[]} points  raw per-trackpoint samples
  * @param {number} maxPoints
- * @returns {{tSec:number[], hrBpm:(number|null)[], powerW:(number|null)[], elevationM:(number|null)[]} | null}
+ * @returns {{tSec:number[], hrBpm:(number|null)[], powerW:(number|null)[], elevationM:(number|null)[], speedKmh:(number|null)[]} | null}
  */
-export function downsampleSeries(points, maxPoints = 180) {
+export function downsampleSeries(points, maxPoints = 1400) {
   const valid = (points || []).filter((p) => p && p.tSec != null && !isNaN(p.tSec));
   if (!valid.length) return null;
 
@@ -18,7 +24,7 @@ export function downsampleSeries(points, maxPoints = 180) {
   const bucketCount = Math.max(1, Math.min(maxPoints, valid.length));
 
   const buckets = Array.from({ length: bucketCount }, () => ({
-    tSum: 0, tCount: 0, hrSum: 0, hrCount: 0, powerSum: 0, powerCount: 0, eleSum: 0, eleCount: 0,
+    tSum: 0, tCount: 0, hrSum: 0, hrCount: 0, powerSum: 0, powerCount: 0, eleSum: 0, eleCount: 0, speedSum: 0, speedCount: 0,
   }));
 
   valid.forEach((p) => {
@@ -29,16 +35,18 @@ export function downsampleSeries(points, maxPoints = 180) {
     if (p.hr != null) { b.hrSum += p.hr; b.hrCount++; }
     if (p.power != null) { b.powerSum += p.power; b.powerCount++; }
     if (p.ele != null) { b.eleSum += p.ele; b.eleCount++; }
+    if (p.speed != null) { b.speedSum += p.speed; b.speedCount++; }
   });
 
-  const tSec = [], hrBpm = [], powerW = [], elevationM = [];
+  const tSec = [], hrBpm = [], powerW = [], elevationM = [], speedKmh = [];
   buckets.forEach((b) => {
     if (!b.tCount) return; // empty bucket (no raw samples landed here) — drop rather than interpolate
     tSec.push(Math.round(b.tSum / b.tCount));
     hrBpm.push(b.hrCount ? Math.round(b.hrSum / b.hrCount) : null);
     powerW.push(b.powerCount ? Math.round(b.powerSum / b.powerCount) : null);
     elevationM.push(b.eleCount ? Math.round((b.eleSum / b.eleCount) * 10) / 10 : null);
+    speedKmh.push(b.speedCount ? Math.round((b.speedSum / b.speedCount) * 3.6 * 10) / 10 : null);
   });
 
-  return tSec.length ? { tSec, hrBpm, powerW, elevationM } : null;
+  return tSec.length ? { tSec, hrBpm, powerW, elevationM, speedKmh } : null;
 }

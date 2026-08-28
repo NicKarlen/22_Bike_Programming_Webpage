@@ -1,7 +1,7 @@
 // Parses Garmin Connect GPX/TCX exports into a normalized activity record, entirely client-side.
 // No network calls, no dependencies — just DOMParser + plain math.
 
-import { computeElevationGain, computeTrackDistanceMeters } from './geoUtils.js';
+import { computeElevationGain, computeTrackDistanceMeters, haversineDistanceMeters } from './geoUtils.js';
 import { toISODate } from './dateUtils.js';
 import { downsampleSeries } from './seriesUtils.js';
 
@@ -10,6 +10,11 @@ const NS = {
   tpx: 'http://www.garmin.com/xmlschemas/ActivityExtension/v2',
   gpxtpx: 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1',
 };
+
+// GPS-derived per-point speed (GPX has no native speed field) is noisy — a single bad fix can
+// imply an unrealistic speed. Clamp anything above ~90km/h (generous for any road/gravel/MTB
+// ride) to null rather than letting it pollute the speed chart or a working-set segment average.
+const GPX_MAX_PLAUSIBLE_SPEED_MS = 25;
 
 function num(el, selector, ns) {
   const child = ns ? el?.getElementsByTagNameNS(ns, selector)[0] : el?.querySelector(selector);
@@ -88,10 +93,11 @@ function parseTCX(doc, fileName) {
 
       const tpx = tp.getElementsByTagNameNS(NS.tpx, 'TPX')[0];
       let watts = null;
+      let spd = null;
       if (tpx) {
         watts = num(tpx, 'Watts', NS.tpx);
         if (watts != null) trackpointPower.push(watts);
-        const spd = num(tpx, 'Speed', NS.tpx);
+        spd = num(tpx, 'Speed', NS.tpx);
         if (spd != null) maxSpeed = Math.max(maxSpeed ?? 0, spd);
         const tpxCad = num(tpx, 'RunCadence', NS.tpx) ?? num(tpx, 'Cadence', NS.tpx);
         if (tpxCad != null) { cadSum += tpxCad; cadCount++; maxCad = Math.max(maxCad ?? 0, tpxCad); }
@@ -100,7 +106,7 @@ function parseTCX(doc, fileName) {
       const timeEl = tp.getElementsByTagNameNS(NS.tcx, 'Time')[0];
       const tDate = timeEl?.textContent ? new Date(timeEl.textContent.trim()) : null;
       if (activityStartDate && tDate && !isNaN(tDate.getTime())) {
-        rawPoints.push({ tSec: (tDate - activityStartDate) / 1000, hr, power: watts, ele: alt });
+        rawPoints.push({ tSec: (tDate - activityStartDate) / 1000, hr, power: watts, ele: alt, speed: spd });
       }
     });
   });
@@ -142,13 +148,18 @@ function parseGPX(doc, fileName) {
   const hrValues = [];
   const cadValues = [];
   let firstTime = null, lastTime = null;
-  // Per-point {tSec, hr, power, ele} samples for the HR/elevation-over-time charts (GPX carries no
-  // standard power field, so `power` stays null here — see parseTCX for the TCX/TPX equivalent).
+  // Per-point {tSec, hr, power, ele, speed} samples for the HR/power/speed/elevation-over-time
+  // charts (GPX carries no standard power field, so `power` stays null here — see parseTCX for
+  // the TCX/TPX equivalent). `speed` isn't a native GPX field either — it's derived below from
+  // consecutive-point distance/time, since GPS fixes are noisy enough that a single bad fix can
+  // imply an absurd speed, we clamp anything above GPX_MAX_PLAUSIBLE_SPEED_MS to null.
   const rawPoints = [];
+  let prevPoint = null; // { lat, lon, tDate } of the last point with valid position+time
 
   trkpts.forEach((tp) => {
     const lat = parseFloat(tp.getAttribute('lat'));
     const lon = parseFloat(tp.getAttribute('lon'));
+    const hasPosition = !isNaN(lat) && !isNaN(lon);
     points.push({ lat, lon });
 
     let alt = null;
@@ -179,8 +190,19 @@ function parseGPX(doc, fileName) {
       if (!isNaN(cad)) cadValues.push(cad);
     }
 
+    let speed = null;
+    if (hasPosition && tDate && prevPoint) {
+      const dtSec = (tDate - prevPoint.tDate) / 1000;
+      if (dtSec > 0) {
+        const distM = haversineDistanceMeters(prevPoint.lat, prevPoint.lon, lat, lon);
+        const impliedSpeed = distM / dtSec;
+        speed = impliedSpeed <= GPX_MAX_PLAUSIBLE_SPEED_MS ? impliedSpeed : null;
+      }
+    }
+    if (hasPosition && tDate) prevPoint = { lat, lon, tDate };
+
     if (tDate && firstTime) {
-      rawPoints.push({ tSec: (tDate - firstTime) / 1000, hr, power: null, ele: alt });
+      rawPoints.push({ tSec: (tDate - firstTime) / 1000, hr, power: null, ele: alt, speed });
     }
   });
 
@@ -229,7 +251,7 @@ export function looksNonCycling(activity) {
  */
 export async function importFiles(files, existingActivities) {
   const byId = new Map(existingActivities.map((a) => [a.id, a]));
-  const result = { importedCount: 0, updatedCount: 0, failed: [], warnings: [] };
+  const result = { importedCount: 0, updatedCount: 0, failed: [], warnings: [], newOrUpdatedIds: [] };
 
   for (const file of Array.from(files)) {
     try {
@@ -243,10 +265,15 @@ export async function importFiles(files, existingActivities) {
       }
       // Re-importing a file whose id already exists *refreshes* that activity's record (e.g. to
       // backfill fields added to the parser after it was first imported, like the chart `series`)
-      // rather than being silently skipped as a no-op duplicate.
-      if (byId.has(activity.id)) result.updatedCount++;
+      // rather than being silently skipped as a no-op duplicate. `workingSet` is the one exception:
+      // it's user-authored (segments placed in the working-set editor), not parser-derived, so a
+      // re-import must carry it forward rather than silently wiping it.
+      const prev = byId.get(activity.id);
+      const merged = prev?.workingSet ? { ...activity, workingSet: prev.workingSet } : activity;
+      if (prev) result.updatedCount++;
       else result.importedCount++;
-      byId.set(activity.id, activity);
+      result.newOrUpdatedIds.push(activity.id);
+      byId.set(activity.id, merged);
     } catch (err) {
       result.failed.push({ file: file.name, reason: err.message || String(err) });
     }

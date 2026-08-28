@@ -252,7 +252,8 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
 
 /* Activity log */
 .activity-table { display: flex; flex-direction: column; gap: 0.4rem; }
-.activity-row { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; }
+.activity-row { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; cursor: pointer; }
+.activity-row:focus-visible { outline: 2px solid var(--color-accent); }
 .activity-row-main { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
 .activity-date { font-size: 0.75rem; color: var(--color-text-muted); }
 .activity-name { font-weight: 600; }
@@ -291,6 +292,77 @@ fieldset.prompt-form legend { padding: 0 0.4rem; font-weight: 700; }
   border-radius: var(--radius-sm);
   padding: 0.7rem;
   margin-bottom: 0.5rem;
+}
+
+/* Working-set editor (js/components/workingSetChart.js, workingSetEditor.js) — manual segment
+   selection over a ride's power/speed/HR chart. Draggable elements use color-mix() for translucent
+   fills so label text painted on top stays fully opaque (plain CSS opacity would dim it too). */
+.ws-legend { display: flex; gap: 0.8rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-muted); margin: 0.4rem 0; }
+.ws-legend-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+.ws-legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.ws-swatch-power { background: var(--color-accent); }
+.ws-swatch-speed { background: var(--color-type-tempo); }
+.ws-swatch-hr { background: var(--status-missed-border); }
+
+.ws-detail {
+  position: relative;
+  height: 160px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  touch-action: pan-y; /* background touches still scroll the page; handles override this themselves */
+}
+.ws-detail-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ws-detail-overlay { position: absolute; inset: 0; pointer-events: none; }
+.ws-line-power { fill: none; stroke: var(--color-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ws-line-speed { fill: none; stroke: var(--color-type-tempo); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.ws-line-hr { fill: none; stroke: var(--status-missed-border); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0.85; }
+
+.ws-segment-fill { position: absolute; top: 0; bottom: 0; pointer-events: none; overflow: hidden; border-left: 1px solid; border-right: 1px solid; }
+.ws-segment-fill.ws-seg-color-0 { background: color-mix(in srgb, var(--color-accent) 22%, transparent); border-color: var(--color-accent); }
+.ws-segment-fill.ws-seg-color-1 { background: color-mix(in srgb, var(--color-type-tempo) 22%, transparent); border-color: var(--color-type-tempo); }
+.ws-segment-fill.ws-seg-color-2 { background: color-mix(in srgb, var(--color-type-vo2max) 22%, transparent); border-color: var(--color-type-vo2max); }
+.ws-segment-label { position: absolute; top: 2px; left: 4px; right: 4px; font-size: 0.65rem; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+/* Wider invisible hit box than the visible line, for comfortable touch dragging. */
+.ws-detail-handle { position: absolute; top: 0; bottom: 0; width: 28px; margin-left: -14px; touch-action: none; cursor: ew-resize; pointer-events: auto; }
+.ws-detail-handle::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--color-accent); }
+.ws-detail-handle::after { content: ''; position: absolute; top: -2px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border: 2px solid var(--color-surface); border-radius: 50%; background: var(--color-accent); box-shadow: var(--shadow-card); }
+.ws-detail-handle.ws-seg-color-0::before, .ws-detail-handle.ws-seg-color-0::after { background: var(--color-accent); }
+.ws-detail-handle.ws-seg-color-1::before, .ws-detail-handle.ws-seg-color-1::after { background: var(--color-type-tempo); }
+.ws-detail-handle.ws-seg-color-2::before, .ws-detail-handle.ws-seg-color-2::after { background: var(--color-type-vo2max); }
+
+.ws-overview { position: relative; margin-top: 0.6rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.4rem; }
+.ws-overview-svg { width: 100%; height: 44px; display: block; }
+.ws-overview-line { fill: none; stroke: var(--color-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.ws-window { position: absolute; top: 0.4rem; bottom: 0.4rem; background: color-mix(in srgb, var(--color-accent) 16%, transparent); border: 1px solid var(--color-accent); border-radius: 4px; touch-action: none; cursor: grab; }
+.ws-window-handle { position: absolute; top: 0; bottom: 0; width: 16px; touch-action: none; cursor: ew-resize; }
+.ws-window-handle-left { left: -8px; }
+.ws-window-handle-right { right: -8px; }
+.ws-window-handle::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 16px; margin: -8px 0 0 -2px; background: var(--color-accent); border-radius: 2px; }
+
+.ws-toolbar { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.ws-empty-hint { margin: 0.5rem 0; }
+.ws-segment-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.ws-segment-row { background: var(--color-surface-alt); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
+.ws-segment-row-top { display: flex; align-items: center; gap: 0.5rem; }
+.ws-segment-label-input { flex: 1; padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: 0.85rem; }
+.btn-icon { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem; padding: 0.2rem 0.4rem; line-height: 1; }
+.btn-icon:hover { color: var(--color-danger); }
+.ws-segment-range { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+
+/* Read-only working-set summary (workout detail Done tab, js/components/workingSetSummary.js) */
+.ws-summary-ride-name { font-weight: 600; font-size: 0.85rem; margin: 0.6rem 0 0.3rem; }
+.ws-summary-ride-name:first-child { margin-top: 0; }
+.ws-summary-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.ws-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; font-size: 0.85rem; }
+.ws-summary-label { color: var(--color-text-muted); flex-shrink: 0; }
+
+/* Gives the working-set editor modal more room than the default modal width, at the breakpoint
+   where modals stop being a full-width mobile bottom sheet; mobile is unaffected (already 100%). */
+@media (min-width: 640px) {
+  .modal.modal-wide { max-width: 760px; }
 }
 
 /* Workout detail view (Planned/Done tabs) */
