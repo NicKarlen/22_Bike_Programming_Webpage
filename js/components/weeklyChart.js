@@ -30,7 +30,11 @@ export function buildWeeklyChart(weeklySeries, { unit = 'km' } = {}) {
       </g>`;
   }).join('');
 
-  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Weekly distance trend">${bars}</svg>`;
+  // Explicit width/height (not just viewBox) so the chart renders at its natural, fixed-bar-size
+  // dimensions — the CSS then only ever scales it *down* to fit a narrow card, never stretches it
+  // up to fill one. Without this, a short series (few bars => narrow viewBox) stretched to 100%
+  // card width would drag its height up proportionally too, ballooning the chart.
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="Weekly distance trend">${bars}</svg>`;
   return wrap;
 }
 

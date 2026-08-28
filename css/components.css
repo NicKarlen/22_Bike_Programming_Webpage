@@ -17,7 +17,7 @@
 
 /* Dashboard weekly trend chart (hand-rolled inline SVG, see components/weeklyChart.js) */
 .weekly-chart { margin: 0.25rem 0 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 0.75rem; box-shadow: var(--shadow-card); }
-.weekly-chart svg { width: 100%; height: auto; display: block; }
+.weekly-chart svg { max-width: 100%; height: auto; display: block; }
 .weekly-chart .bar { fill: var(--color-accent); }
 .weekly-chart .bar-value, .weekly-chart .axis-label { font-size: 7px; fill: var(--color-text-muted); }
 
